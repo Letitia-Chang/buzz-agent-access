@@ -1,0 +1,10 @@
+{
+  "id": "letitia.teammate-access",
+  "name": "Teammate access",
+  "apiVersion": 1,
+  "description": "Let teammates you choose talk to your agents by @mentioning them in a channel.",
+  "discovery": {
+    "category": "developer-tools-and-integrations",
+    "tags": ["Agents", "Teams"]
+  }
+}
