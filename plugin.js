@@ -20,17 +20,31 @@ const CHAT_KINDS = [9, 40003, 40007, 46010];
 const POLL_MS = 20_000;
 const LOOKBACK_S = 120;
 const HOUR_MS = 3_600_000;
+const DAY_MS = 24 * HOUR_MS;
 const DEFAULT_LIMIT = 10;
+const DEFAULT_DAILY = 50;
+/** Channels or agents reaching more people than this ask for confirmation. */
+const LARGE_REACH = 20;
 const HEX64 = /^[0-9a-f]{64}$/;
 
 // ---------- config (device-local) ----------
 // {
 //   agents: { [agentPubkey]: { channels: string[] } },  // enabled agents
 //   teammates: [{ name, pubkey }],                      // people, any channel
-//   limitPerHour: number                                // per person, per agent
+//   limitPerHour: number,                               // per person, per agent
+//   dailyPerAgent: number                               // everyone together, per agent
 // }
 
-const emptyConfig = () => ({ agents: {}, teammates: [], limitPerHour: DEFAULT_LIMIT });
+const emptyConfig = () => ({
+  agents: {},
+  teammates: [],
+  limitPerHour: DEFAULT_LIMIT,
+  dailyPerAgent: DEFAULT_DAILY,
+});
+const intIn = (value, min, max, fallback) => {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= min && n <= max ? n : fallback;
+};
 
 function loadConfig() {
   try {
@@ -49,10 +63,12 @@ function loadConfig() {
     const teammates = (Array.isArray(raw.teammates) ? raw.teammates : [])
       .filter((t) => t && HEX64.test(t.pubkey))
       .map((t) => ({ name: String(t.name || "").slice(0, 60), pubkey: t.pubkey }));
-    const limit = Number(raw.limitPerHour);
-    const limitPerHour =
-      Number.isInteger(limit) && limit >= 1 && limit <= 1000 ? limit : DEFAULT_LIMIT;
-    return { agents, teammates, limitPerHour };
+    return {
+      agents,
+      teammates,
+      limitPerHour: intIn(raw.limitPerHour, 1, 1000, DEFAULT_LIMIT),
+      dailyPerAgent: intIn(raw.dailyPerAgent, 1, 10000, DEFAULT_DAILY),
+    };
   } catch {
     return emptyConfig();
   }
@@ -165,12 +181,15 @@ function grantFor(config, agentPubkey, event, channel) {
   return undefined;
 }
 
-/** Sliding one-hour window per (agent, sender). */
-function createLimiter() {
+/** Sliding-window counter per key. */
+function createLimiter(windowMs) {
   const hits = new Map();
   return {
+    count(key, now = Date.now()) {
+      return (hits.get(key) || []).filter((t) => now - t < windowMs).length;
+    },
     take(key, limit, now = Date.now()) {
-      const recent = (hits.get(key) || []).filter((t) => now - t < HOUR_MS);
+      const recent = (hits.get(key) || []).filter((t) => now - t < windowMs);
       if (recent.length >= limit) {
         hits.set(key, recent);
         return false;
@@ -193,14 +212,16 @@ export function apply(ctx) {
   const React = ctx.react;
   const store = createConfigStore();
   const status = createStatus();
-  const limiter = createLimiter();
+  const limiter = createLimiter(HOUR_MS); // per person, per agent
+  const daily = createLimiter(DAY_MS); // everyone, per agent
+  const usage = { count: (agentPubkey) => daily.count(agentPubkey) };
   const registerPage = () =>
     ctx.pages.register({
       id: "main",
       title: "Teammate access",
       primary: true,
       component: function TeammateAccessPage() {
-        return React.createElement(SettingsPage, { React, ctx, store, status });
+        return React.createElement(SettingsPage, { React, ctx, store, status, usage });
       },
     });
 
@@ -279,10 +300,16 @@ export function apply(ctx) {
           }
           if (agent.owner === event.pubkey) continue; // the owner is answered directly
           const who = grant.via === "person" ? grant.label : event.pubkey.slice(0, 8) + "…";
+          if (daily.count(agentPubkey) >= current.dailyPerAgent) {
+            status.log(`${agent.name} reached its daily limit (${current.dailyPerAgent}); ${who}'s message not passed on.`);
+            continue;
+          }
           if (!limiter.take(`${agentPubkey}:${event.pubkey}`, current.limitPerHour)) {
             status.log(`Hourly limit reached for ${who} on ${agent.name}; not passed on.`);
             continue;
           }
+          daily.take(agentPubkey, current.dailyPerAgent);
+          status.bump();
           try {
             ctx.agents.wake(agent.key, {
               channel,
@@ -346,6 +373,11 @@ function createStatus() {
       value = { ...value, ...patch };
       emit();
     },
+    /** Re-render readers after usage counters change. */
+    bump() {
+      value = { ...value };
+      emit();
+    },
     log(line) {
       const stamp = new Date().toLocaleTimeString();
       value = { ...value, log: [`${stamp}  ${line}`, ...value.log].slice(0, 20) };
@@ -375,7 +407,24 @@ function useChannels(React, ctx) {
   );
 }
 
-function SettingsPage({ React, ctx, store, status }) {
+/** People who can start `agent`: members of its channels plus approved people. */
+function reachOf(config, agent, channels) {
+  const picked = config.agents[agent.pubkey]?.channels || [];
+  const people = new Set(config.teammates.map((t) => t.pubkey));
+  let unknown = 0;
+  for (const id of picked) {
+    const channel = channels.find((c) => c.id === id);
+    if (!channel?.members) unknown++;
+    else for (const member of channel.members) people.add(member);
+  }
+  people.delete(agent.pubkey);
+  if (agent.owner) people.delete(agent.owner);
+  return { count: people.size, unknown };
+}
+
+const memberCount = (channel) => (channel.members ? channel.members.length : undefined);
+
+function SettingsPage({ React, ctx, store, status, usage }) {
   const h = React.createElement;
   const config = React.useSyncExternalStore(store.subscribe, store.get);
   const state = React.useSyncExternalStore(status.subscribe, status.get);
@@ -387,6 +436,7 @@ function SettingsPage({ React, ctx, store, status }) {
   const [name, setName] = React.useState("");
   const [key, setKey] = React.useState("");
   const [error, setError] = React.useState("");
+  const [pending, setPending] = React.useState(undefined); // { agent, channel }
 
   const mine = (agentsSnap.agents || []).filter((a) =>
     (agentsSnap.running || []).some((r) => r.key === a.key),
@@ -402,10 +452,20 @@ function SettingsPage({ React, ctx, store, status }) {
     else agents[pubkey] = { channels: [] };
     setAgents(agents);
   };
-  const toggleChannel = (pubkey, id) => {
+  const setChannel = (pubkey, id, on) => {
     const current = config.agents[pubkey]?.channels || [];
-    const next = current.includes(id) ? current.filter((c) => c !== id) : [...current, id];
+    const next = on ? [...new Set([...current, id])] : current.filter((c) => c !== id);
     setAgents({ ...config.agents, [pubkey]: { channels: next } });
+  };
+  // Granting a big or non-private channel asks first: every member would be
+  // able to spend your credits and run commands on this computer.
+  const toggleChannel = (agent, channel) => {
+    const on = !(config.agents[agent.pubkey]?.channels || []).includes(channel.id);
+    const size = memberCount(channel);
+    const risky = channel.visibility !== "private" || size === undefined || size > LARGE_REACH;
+    if (on && risky) return setPending({ agent: agent.pubkey, channel: channel.id });
+    setPending(undefined);
+    setChannel(agent.pubkey, channel.id, on);
   };
   const addTeammate = (e) => {
     e.preventDefault();
@@ -432,6 +492,21 @@ function SettingsPage({ React, ctx, store, status }) {
   const mono = { fontFamily: "ui-monospace, monospace", fontSize: 12, opacity: 0.7 };
   const muted = { opacity: 0.7, fontSize: 13 };
   const warn = { color: "var(--color-text-warning, #b26a00)", fontSize: 13 };
+  const callout = {
+    margin: "6px 0 8px 24px",
+    padding: "10px 12px",
+    borderRadius: 8,
+    border: "1px solid var(--color-border-warning, rgba(178,106,0,.45))",
+    background: "var(--color-surface-warning, rgba(178,106,0,.08))",
+    fontSize: 13,
+  };
+  const pill = {
+    fontSize: 12,
+    padding: "2px 8px",
+    borderRadius: 999,
+    background: "var(--color-surface-subtle, rgba(127,127,127,.12))",
+    whiteSpace: "nowrap",
+  };
 
   const channelPicker = (agent) => {
     const picked = config.agents[agent.pubkey]?.channels || [];
@@ -451,14 +526,57 @@ function SettingsPage({ React, ctx, store, status }) {
               h("input", {
                 type: "checkbox",
                 checked: picked.includes(c.id),
-                onChange: () => toggleChannel(agent.pubkey, c.id),
+                onChange: () => toggleChannel(agent, c),
               }),
               h("span", null, c.visibility === "private" ? "🔒 " : "# ", c.name),
-              c.visibility === "private"
-                ? null
-                : h("span", { style: muted }, c.visibility === "public" ? "public" : "visibility unknown"),
+              h(
+                "span",
+                { style: muted },
+                memberCount(c) === undefined ? "members unknown" : `${memberCount(c)} members`,
+                c.visibility === "private" ? "" : c.visibility === "public" ? " · public" : " · visibility unknown",
+              ),
             ),
           ),
+      pending && pending.agent === agent.pubkey
+        ? (() => {
+            const c = channels.find((x) => x.id === pending.channel);
+            if (!c) return null;
+            const size = memberCount(c);
+            return h(
+              "div",
+              { style: callout, role: "alert" },
+              h(
+                "p",
+                { style: { margin: "0 0 8px" } },
+                h("strong", null, `Give everyone in ${c.name} access to ${agent.name}?`),
+                " ",
+                size === undefined
+                  ? "Buzz hasn't loaded this channel's member list, so you can't see how many people that is."
+                  : `That's ${size} people.`,
+                c.visibility === "private"
+                  ? ""
+                  : " This channel isn't private, so anyone in the community can join it and get access.",
+                ` Each of their requests runs on this computer and uses your Claude credits (up to ${config.limitPerHour} per person per hour, ${config.dailyPerAgent} per day for ${agent.name}).`,
+              ),
+              h(
+                "div",
+                { style: { display: "flex", gap: 8 } },
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => {
+                      setChannel(agent.pubkey, c.id, true);
+                      setPending(undefined);
+                    },
+                  },
+                  "Grant access",
+                ),
+                h("button", { type: "button", onClick: () => setPending(undefined) }, "Cancel"),
+              ),
+            );
+          })()
+        : null,
       pickedPublic.length
         ? h(
             "p",
@@ -508,7 +626,26 @@ function SettingsPage({ React, ctx, store, status }) {
                   onChange: () => toggleAgent(agent.pubkey),
                 }),
                 h("span", { style: { flex: 1, fontWeight: 600 } }, agent.name),
-                h("span", { style: mono }, `${agent.pubkey.slice(0, 12)}…`),
+                config.agents[agent.pubkey]
+                  ? (() => {
+                      const reach = reachOf(config, agent, channels);
+                      const big = reach.count > LARGE_REACH;
+                      return h(
+                        React.Fragment,
+                        null,
+                        h(
+                          "span",
+                          { style: { ...pill, ...(big ? { color: warn.color } : null) } },
+                          `${reach.count}${reach.unknown ? "+" : ""} ${reach.count === 1 ? "person" : "people"} can use it`,
+                        ),
+                        h(
+                          "span",
+                          { style: pill },
+                          `${usage.count(agent.pubkey)}/${config.dailyPerAgent} today`,
+                        ),
+                      );
+                    })()
+                  : h("span", { style: mono }, `${agent.pubkey.slice(0, 12)}…`),
               ),
               config.agents[agent.pubkey] ? channelPicker(agent) : null,
             ),
@@ -555,7 +692,24 @@ function SettingsPage({ React, ctx, store, status }) {
     h(
       "section",
       { className: "ui-card", style: card },
-      h("h2", null, "Limit"),
+      h("h2", null, "Limits"),
+      h(
+        "label",
+        { style: { display: "flex", gap: 8, alignItems: "center", marginBottom: 8 } },
+        "Each agent answers at most",
+        h("input", {
+          type: "number",
+          min: 1,
+          max: 10000,
+          value: config.dailyPerAgent,
+          onChange: (e) => {
+            const n = Math.round(Number(e.target.value));
+            if (n >= 1 && n <= 10000) store.set({ ...config, dailyPerAgent: n });
+          },
+          style: { width: 80 },
+        }),
+        "requests a day from other people, all together.",
+      ),
       h(
         "label",
         { style: { display: "flex", gap: 8, alignItems: "center" } },
@@ -573,7 +727,11 @@ function SettingsPage({ React, ctx, store, status }) {
         }),
         "times per hour.",
       ),
-      h("p", { style: muted }, "Protects your Claude credits when many people have access."),
+      h(
+        "p",
+        { style: muted },
+        "These protect your Claude credits when many people have access. Your own messages to your agents never count. Counts reset when Buzz restarts.",
+      ),
     ),
 
     h(

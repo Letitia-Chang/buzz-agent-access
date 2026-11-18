@@ -2,9 +2,15 @@
   "id": "letitia.teammate-access",
   "name": "Teammate access",
   "apiVersion": 1,
-  "description": "Let teammates you choose talk to your agents by @mentioning them in a channel.",
+  "description": "Let people in channels you choose, or teammates you name, talk to your agents by @mentioning them.",
   "discovery": {
     "category": "developer-tools-and-integrations",
-    "tags": ["Agents", "Teams"]
+    "tags": [
+      "Agents",
+      "Teams"
+    ]
+  },
+  "updates": {
+    "defaultEnabled": true
   }
 }
