@@ -116,3 +116,7 @@ it first. Turn checks off in the plugin's actions menu.
   channels, a daily budget per agent, and Git update checks.
 - **v2:** access by channel, plus an hourly limit per person.
 - **v1:** access by approved people (allowlist).
+
+## License
+
+[MIT](LICENSE)
