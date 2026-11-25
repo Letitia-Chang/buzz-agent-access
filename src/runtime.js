@@ -390,7 +390,7 @@ export function apply(ctx) {
     id: "main",
     title: "Agent Access",
     primary: true, // shows the page in Buzz's left dock
-    icon: iconDataUrl("bot"),
+    icon: iconDataUrl("users-round"),
     component: function AgentAccessPage() {
       return React.createElement(App, { React, ctx, rt });
     },
