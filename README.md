@@ -92,7 +92,7 @@ requests even when the channel is shared.
 In Buzz (desktop), go to **Settings → Plugins → Manage plugins**:
 
 - **From a Git repository:** this repository's SSH URL
-  (`git@github.com:Letitia-Chang/agent-access.git`). Buzz uses your GitHub
+  (`git@github.com:Letitia-Chang/buzz-agent-access.git`). Buzz uses your GitHub
   SSH key, so you need read access.
 - **From a folder:** unzip a release and choose the folder.
 
@@ -100,7 +100,7 @@ New installs start disabled. Enable the plugin, then open **Agent Access**.
 
 **Coming from Teammate access (v1 to v4.0)?** The plugin ID changed in 4.1, so Buzz
 sees it as a new plugin. In **Manage plugins**, remove the old *Teammate access*
-entry, then add `git@github.com:Letitia-Chang/agent-access.git`. Your channels,
+entry, then add `git@github.com:Letitia-Chang/buzz-agent-access.git`. Your channels,
 people, limits and activity carry over.
 
 ## Updates
@@ -139,7 +139,7 @@ npm test           # 21 tests: rules, limits, requests, delivery, channel menu
   line icons (Lucide), and each agent gets a letter mark.
 
 - **v4.1:** renamed everywhere to Agent Access (plugin ID `letitia.agent-access`,
-  repository `agent-access`), with older settings carried over. The page is redesigned
+  repository `buzz-agent-access`), with older settings carried over. The page is redesigned
   in design A: beige cards, a big usage number, and folder tabs for each shared agent.
 
 - **v4 (Agent Access):** a new name and page. Requests from people without access,
