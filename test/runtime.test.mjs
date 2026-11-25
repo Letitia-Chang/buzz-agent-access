@@ -157,3 +157,16 @@ test("the channel menu offers Share an agent here", () => {
   assert.equal(rt.state.get().prefill, TEAM);
   assert.equal(opened.pageId, "main");
 });
+
+test("settings saved under the old Teammate access name carry over", () => {
+  globalThis.localStorage = memoryStorage();
+  localStorage.setItem("letitia.teammate-access:v1", JSON.stringify({ agents: { [COFFEE]: { channels: [TEAM] } }, limitPerHour: 9 }));
+  localStorage.setItem("letitia.teammate-access:state", JSON.stringify({ activity: [{ at: Date.now(), result: "ok" }] }));
+  const rt = createRuntime(fakeHost().ctx);
+  assert.equal(core.PLUGIN_ID, "letitia.agent-access");
+  assert.deepEqual(rt.config.get().agents[COFFEE].channels, [TEAM]);
+  assert.equal(rt.config.get().limits.hour, 9);
+  assert.equal(rt.state.get().activity.length, 1);
+  rt.config.set((c) => c, { now: true });
+  assert.ok(localStorage.getItem(core.STORAGE_KEY), "saved under the new name from then on");
+});

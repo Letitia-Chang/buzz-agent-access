@@ -9,8 +9,8 @@ one, with limits you set.
 > They run somewhere else, so a plugin on your computer can't reach them.
 > Direct messages to your agent aren't passed on yet.
 
-(Formerly *Teammate access*. The plugin ID is unchanged, so updating keeps your
-settings.)
+(Formerly *Teammate access*. Since 4.1 the plugin ID is `letitia.agent-access`.
+Settings saved by older versions are carried over the first time 4.1 opens.)
 
 ## Why it exists
 
@@ -92,11 +92,16 @@ requests even when the channel is shared.
 In Buzz (desktop), go to **Settings → Plugins → Manage plugins**:
 
 - **From a Git repository:** this repository's SSH URL
-  (`git@github.com:Letitia-Chang/buzz-teammate-access.git`). Buzz uses your GitHub
+  (`git@github.com:Letitia-Chang/agent-access.git`). Buzz uses your GitHub
   SSH key, so you need read access.
 - **From a folder:** unzip a release and choose the folder.
 
 New installs start disabled. Enable the plugin, then open **Agent Access**.
+
+**Coming from Teammate access (v1 to v4.0)?** The plugin ID changed in 4.1, so Buzz
+sees it as a new plugin. In **Manage plugins**, remove the old *Teammate access*
+entry, then add `git@github.com:Letitia-Chang/agent-access.git`. Your channels,
+people, limits and activity carry over.
 
 ## Updates
 
@@ -111,20 +116,25 @@ small build script:
 ```sh
 npm install        # test tools only; the plugin has no dependencies
 npm run build      # src/*.js + art/*.svg → plugin.js
-npm test           # 20 tests: rules, limits, requests, delivery, channel menu
+npm test           # 21 tests: rules, limits, requests, delivery, channel menu
 ```
 
 - `src/core.js`: settings, sharing rules, limits and activity. No Buzz services,
   so it's tested directly.
 - `src/runtime.js`: watching mentions, requests, notices, notifications, channel
   menu, and the "while you were away" check.
-- `src/ui.js`: the page. It uses Buzz's colour tokens, so light and dark themes both
-  work.
+- `src/ui.js`: the page, in design A: a beige page with rounded cards, two-tone
+  titles and mono `{001}` tags. It follows Buzz's theme with a beige light palette and
+  an espresso dark one.
 - `art/`: illustrations from [Open Peeps](https://openpeeps.com) and
   [Open Doodles](https://opendoodles.com) by Pablo Stanley (CC0), shown on white
   "paper" so they read in dark mode.
 
 ## Changelog
+
+- **v4.1:** renamed everywhere to Agent Access (plugin ID `letitia.agent-access`,
+  repository `agent-access`), with older settings carried over. The page is redesigned
+  in design A: beige cards, a big usage number, and folder tabs for each shared agent.
 
 - **v4 (Agent Access):** a new name and page. Requests from people without access,
   with Give access, Answer once and Dismiss, also as Buzz notices. People can be

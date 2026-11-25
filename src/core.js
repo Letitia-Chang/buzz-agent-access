@@ -1,9 +1,11 @@
 // ---------- Agent Access core: config, rules, limits, activity ----------
 // Pure logic with no React and no Buzz services, so it can be tested in Node.
 
-const PLUGIN_ID = "letitia.teammate-access";
-const STORAGE_KEY = "letitia.teammate-access:v1"; // kept so v1–v3 settings carry over
-const STATE_KEY = "letitia.teammate-access:state";
+const PLUGIN_ID = "letitia.agent-access";
+const STORAGE_KEY = "letitia.agent-access:config";
+const STATE_KEY = "letitia.agent-access:state";
+// Settings saved by v1–v4 under the old name are read once and carried over.
+const LEGACY_KEYS = { [STORAGE_KEY]: "letitia.teammate-access:v1", [STATE_KEY]: "letitia.teammate-access:state" };
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 const BIG_CHANNEL = 20;
@@ -264,7 +266,7 @@ function toPubkey(input) {
 }
 
 const core = {
-  PLUGIN_ID, STORAGE_KEY, STATE_KEY, HOUR_MS, DAY_MS, BIG_CHANNEL, HEX64, DEFAULTS, DURATIONS, LIMIT_TEXT, INSTRUCTIONS,
+  PLUGIN_ID, STORAGE_KEY, STATE_KEY, LEGACY_KEYS, HOUR_MS, DAY_MS, BIG_CHANNEL, HEX64, DEFAULTS, DURATIONS, LIMIT_TEXT, INSTRUCTIONS,
   emptyConfig, normalizeConfig, untilFor, endsLabel, supportOf, askReason, grantFor,
   createCounters, limitHit, countUse, addActivity, addRequest, offlineGap, howTo,
   threadRoot, channelOf, mentions, fromRelay, npubToHex, toPubkey,

@@ -10,7 +10,8 @@ const PAGE_TARGET = { version: 1, kind: "plugin", pluginId: core.PLUGIN_ID, page
 function createStore(key, read, fallback) {
   let value;
   try {
-    value = read(JSON.parse(localStorage.getItem(key) || "null"));
+    const saved = localStorage.getItem(key) ?? localStorage.getItem(core.LEGACY_KEYS[key] || "") ?? "null";
+    value = read(JSON.parse(saved));
   } catch {
     value = fallback();
   }

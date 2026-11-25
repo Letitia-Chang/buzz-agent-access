@@ -1,5 +1,5 @@
 {
-  "id": "letitia.teammate-access",
+  "id": "letitia.agent-access",
   "name": "Agent Access",
   "apiVersion": 1,
   "description": "Let teammates @mention the agents running on your computer, in channels you choose or one by one, with limits. Claude, Codex, Goose and Pi agents only; Shared compute and Builderlab agents aren't supported.",
