@@ -77,7 +77,15 @@ function profileName(session, pubkey) {
     return undefined;
   }
 }
-const today = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
+/** Buzz marks agent accounts in their profile. */
+function profileIsAgent(session, pubkey) {
+  try {
+    return session?.profiles?.snapshot?.()?.get?.(pubkey)?.isAgent === true;
+  } catch {
+    return false;
+  }
+}
+const today = (now = Date.now()) => { const d = new Date(now); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 
 function createRuntime(ctx) {
   const config = createStore(core.STORAGE_KEY, (raw) => core.normalizeConfig(raw), core.emptyConfig);
@@ -103,6 +111,7 @@ function createRuntime(ctx) {
   const nameOf = (pubkey) =>
     config.get().people.find((p) => p.pubkey === pubkey)?.name || profileName(liveSession(), pubkey) || pubkey.slice(0, 8) + "…";
   const liveSession = () => session || (() => { try { const c = ctx.relay.snapshot(); return c.status === "ready" ? c.session : undefined; } catch { return undefined; } })();
+  const isAgent = (pubkey) => profileIsAgent(liveSession(), pubkey);
   const channelById = (id) => channelList(liveSession()).find((c) => c.id === id);
   const channelName = (id) => {
     const c = channelById(id);
@@ -113,7 +122,10 @@ function createRuntime(ctx) {
 
   async function wake(agent, req) {
     const cfg = config.get();
-    countUse(agent.pubkey, req.from);
+    // Reserve the use now, so questions arriving together can't all slip under a limit;
+    // give it back if the question isn't delivered.
+    const usedAt = countUse(agent.pubkey, req.from);
+    const giveBack = () => { core.uncountUse(counters, agent.pubkey, req.from, usedAt); saveCounters(); };
     const text = `From ${req.fromName} (${req.from}):\n${req.text}` + (hasInstructions ? "" : `\n\n---\n${core.INSTRUCTIONS}`);
     const meta = { who: req.from, whoName: req.fromName, agent: agent.pubkey, channel: req.channel };
     try {
@@ -123,22 +135,27 @@ function createRuntime(ctx) {
           { channel: req.channel, root: req.root, text },
           { current: () => !config.get().paused && !config.get().agents[agent.pubkey]?.paused },
         );
-        if (result?.status === "delivered") log({ ...meta, result: "ok" });
-        else log({ ...meta, result: "drop", detail: dropText(result?.reason) });
+        if (result?.status !== "delivered") {
+          giveBack();
+          log({ ...meta, result: "drop", detail: dropText(result?.reason) });
+          return;
+        }
       } else {
         ctx.agents.wake(agent.key, { channel: req.channel, root: req.root, text });
-        log({ ...meta, result: "ok" });
       }
-      if (cfg.alerts.every) notify(`answer:${req.eventId}`, `${agent.name} answered ${req.fromName}`, `In ${channelName(req.channel)}`);
+      log({ ...meta, result: "ok" });
+      if (cfg.alerts.every) notify(`answer:${req.eventId}`, `${req.fromName} asked ${agent.name}`, `Sent to ${agent.name} in ${channelName(req.channel)}`);
     } catch (error) {
+      giveBack();
       log({ ...meta, result: "drop", detail: "Couldn't start the agent" });
       console.warn("[agent-access] wake failed", error);
     }
     nearLimit(agent);
   }
   const countUse = (agentPubkey, from) => {
-    core.countUse(counters, agentPubkey, from);
+    const at = core.countUse(counters, agentPubkey, from);
     saveCounters();
+    return at;
   };
   const dropText = (reason) =>
     ({ aborted: "Stopped", stale: "Sharing changed first", "guard-error": "Check failed", unavailable: "Agent wasn't running", refused: "Buzz refused it" })[reason] || "Not delivered";
@@ -146,11 +163,13 @@ function createRuntime(ctx) {
   function nearLimit(agent) {
     const cfg = config.get();
     if (!cfg.alerts.near) return;
-    const used = counters.count(`d:${agent.pubkey}`, core.DAY_MS);
-    const key = `${agent.pubkey}:${today()}`;
-    if (used >= Math.ceil(cfg.limits.day * 0.9) && !state.get().nearSent[key]) {
-      state.set((s) => ({ ...s, nearSent: { [key]: true } }));
-      notify(`near:${key}`, `${agent.name} is close to today's limit`, `${used} of ${cfg.limits.day} answers used. You can raise it in Agent Access.`);
+    const used = counters.today(`d:${agent.pubkey}`);
+    const day = today();
+    const key = `${agent.pubkey}:${day}`;
+    if (used >= Math.ceil(cfg.limits.day * core.NEAR) && !state.get().nearSent[key]) {
+      // Keep today's other agents, so nobody is warned twice; drop older days.
+      state.set((s) => ({ ...s, nearSent: { ...Object.fromEntries(Object.entries(s.nearSent || {}).filter(([k]) => k.endsWith(":" + day))), [key]: true } }));
+      notify(`near:${key}`, `${agent.name} is close to today's limit`, `${used} of ${cfg.limits.day} used today. It resets at midnight, or you can raise it in Agent Access.`);
     }
   }
 
@@ -176,9 +195,9 @@ function createRuntime(ctx) {
     }
   }
 
-  function queue(req, agent, kind) {
-    state.set((s) => ({ ...s, requests: core.addRequest(s.requests, { ...req, kind, agentName: agent.name, at: Date.now() }) }));
-    if (kind !== "away") void askToast(req, agent, kind);
+  function queue(req, agent, kind, detail) {
+    state.set((s) => ({ ...s, requests: core.addRequest(s.requests, { ...req, kind, detail, agentName: agent.name, at: Date.now() }) }));
+    if (kind !== "away" && kind !== "held") void askToast(req, agent, kind);
   }
 
   async function consider(event, startedAt) {
@@ -190,6 +209,8 @@ function createRuntime(ctx) {
       if (!core.mentions(event, pubkey) || event.pubkey === pubkey) continue;
       const agent = ctx.agents.find(pubkey);
       if (!agent || event.pubkey === agent.owner) continue;
+      // Other agents can't wake yours unless you added them by hand, so two agents can't loop.
+      if (isAgent(event.pubkey) && !cfg.people.some((p) => p.pubkey === event.pubkey)) continue;
       const req = { eventId: event.id, from: event.pubkey, fromName: nameOf(event.pubkey), agent: pubkey, channel, root, text: String(event.content || "") };
       if (event.created_at < startedAt - 5) {
         queue(req, agent, "away");
@@ -199,6 +220,7 @@ function createRuntime(ctx) {
       const grant = core.grantFor(cfg, pubkey, event.pubkey, channel);
       if (!grant) {
         if (cfg.paused || cfg.agents[pubkey]?.paused) {
+          queue(req, agent, "held", "Sharing was paused");
           log({ who: req.from, whoName: req.fromName, agent: pubkey, channel, result: "held", detail: "Sharing was paused" });
           continue;
         }
@@ -208,6 +230,7 @@ function createRuntime(ctx) {
       }
       const hit = core.limitHit(cfg, counters, pubkey, event.pubkey);
       if (hit) {
+        queue(req, agent, "held", core.LIMIT_TEXT[hit]);
         log({ who: req.from, whoName: req.fromName, agent: pubkey, channel, result: "held", detail: core.LIMIT_TEXT[hit] });
         continue;
       }
@@ -320,7 +343,7 @@ function createRuntime(ctx) {
         if (todays.length) {
           const answered = todays.filter((a) => a.result === "ok").length;
           const people = new Set(todays.map((a) => a.who)).size;
-          notify(`summary:${day}`, "Agent Access today", `${answered} answered for ${people} people. ${state.get().requests.length} waiting for you.`);
+          notify(`summary:${day}`, "Agent Access today", `${answered} ${answered === 1 ? "question" : "questions"} sent to your agents for ${people} ${people === 1 ? "person" : "people"}. ${state.get().requests.length} waiting for you.`);
         }
       }
     }, BEAT_MS);
@@ -365,7 +388,7 @@ function createRuntime(ctx) {
 
   return {
     config, state, counters, guarded, canWake, hasInstructions,
-    session: liveSession, channelList: () => channelList(liveSession()), nameOf, channelName,
+    session: liveSession, channelList: () => channelList(liveSession()), nameOf, channelName, isAgent,
     approve, answerOnce, dismiss, addPerson, copy, start, heartbeat, channelMenu,
     removePerson: (pubkey) => config.set((c) => ({ ...c, people: c.people.filter((p) => p.pubkey !== pubkey) }), { now: true }),
   };

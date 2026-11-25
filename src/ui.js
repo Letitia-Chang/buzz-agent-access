@@ -43,13 +43,12 @@ const TABS = [
   ["activity", "Activity"], ["limits", "Limits"], ["settings", "Settings"],
 ];
 const RESULTS = {
-  ok: ["Answered", "ok"], req: ["Asked you", "danger"], held: ["Held", "warn"],
+  ok: ["Delivered", "ok"], req: ["Asked you", "danger"], held: ["Held", "warn"],
   drop: ["Not delivered", "meta"], refused: ["Dismissed", "meta"], away: ["While away", "warn"],
 };
 // Each agent gets a letter mark in one of the palette's colours, chosen from its key.
 const MARK_COLOURS = [["#24324A", "#F4F2EA"], ["#5F8A8B", "#F4F2EA"], ["#B89B5E", "#1E2533"], ["#9A5641", "#F4F2EA"], ["#7C6F86", "#F4F2EA"]];
 const hashOf = (s) => [...String(s)].reduce((n, ch) => Math.imul(n ^ ch.charCodeAt(0), 16777619) >>> 0, 2166136261);
-const tag = (n) => `{${String(n).padStart(3, "0")}}`;
 const timeLabel = (at) => {
   const d = new Date(at);
   const sameDay = d.toDateString() === new Date().toDateString();
@@ -157,8 +156,8 @@ function Tile({ h, children, style }) {
 /** Two-tone card title, e.g. "Usage / all agents", with an optional {001} tag. */
 function Title({ h, children, sub, n, right }) {
   return h("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 } },
-    h("h2", { style: { margin: 0, fontSize: 15, lineHeight: 1.15, fontWeight: 700, letterSpacing: "-0.02em" } }, children, sub ? h("span", { style: { display: "block", color: T.grey } }, sub) : null),
-    h("span", { style: { display: "inline-flex", alignItems: "center", gap: 10 } }, right || null, n ? h("span", { style: { fontFamily: MONO, fontSize: 12, color: T.meta } }, tag(n)) : null));
+    h("h2", { style: { margin: 0, fontSize: 17, lineHeight: 1.15, fontWeight: 700, letterSpacing: "-0.02em" } }, children, sub ? h("span", { style: { display: "block", color: T.grey } }, sub) : null),
+    h("span", { style: { display: "inline-flex", alignItems: "center", gap: 10 } }, right || null));
 }
 function Callout({ h, icon, tone, children }) {
   const bg = tone === "warn" ? T.warnBg : tone === "danger" ? T.dangerBg : T.tile;
@@ -249,7 +248,7 @@ function AwayBanner({ h, rt, state, go }) {
     "Nobody could use your agents then. ",
     waiting ? `${plural(waiting, "mention")} came in while you were away. None were answered.` : "No mentions came in.",
     h("div", { style: { display: "flex", gap: 8, marginTop: 10 } },
-      waiting ? h(Btn, { h, kind: "primary", onClick: () => go("people") }, "Review them") : null,
+      waiting ? h(Btn, { h, kind: "primary", onClick: () => go("overview") }, "Review them") : null,
       h(Btn, { h, onClick: () => rt.state.set((s) => ({ ...s, away: undefined })) }, "Got it")));
 }
 function PausedBanner({ h, rt }) {
@@ -266,8 +265,8 @@ function Tabs({ h, tab, go, state }) {
       return h("button", { key: id, type: "button", "aria-current": on ? "page" : undefined, onClick: () => go(id),
         style: { display: "inline-flex", alignItems: "center", gap: 8, height: 32, padding: "0 16px", border: 0, borderRadius: 999, font: "inherit", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", cursor: "pointer", background: on ? T.primary : "transparent", color: on ? T.onPrimary : T.text } },
         label,
-        id === "people" && waiting ? h(Badge, { h }, waiting) : null,
-        id === "activity" && state.activity.length ? h(Mono, { h, style: { color: "inherit", opacity: 0.75 } }, tag(Math.min(state.activity.length, 999))) : null);
+        id === "overview" && waiting ? h(Badge, { h }, waiting) : null,
+        null);
     }));
 }
 
@@ -281,7 +280,6 @@ function FirstRun({ h, go }) {
   return h(Fragment, null,
     h(Card, { h, style: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: "20px 36px", padding: "30px 28px" } },
       h("div", { style: { flex: "1 1 320px", display: "flex", flexDirection: "column", gap: 14 } },
-        h(Mono, { h }, `${tag(1)} welcome`),
         h("p", { style: { margin: 0, fontSize: 26, lineHeight: 1.08, fontWeight: 800, letterSpacing: "-0.035em" } }, "Let ", h("span", { style: { background: `linear-gradient(transparent 68%, ${YELLOW} 68%, ${YELLOW} 94%, transparent 94%)` } }, "your team"), h("span", { style: { display: "block", color: T.grey } }, "ask your agents.")),
         h(Sub, { h, style: { fontSize: 14 } }, "Pick an agent, pick who can ask, set a few limits. Teammates @mention it in Buzz and it answers in a thread, here on your computer, as you."),
         h("div", null, h(Btn, { h, kind: "sky", onClick: () => go("share"), style: { minHeight: 36, fontSize: 14 } }, "Share your first agent →"))),
@@ -289,65 +287,63 @@ function FirstRun({ h, go }) {
     h(Limitations, { h }));
 }
 
-function Requests({ h, rt, state, flash, config, n }) {
+function Requests({ h, rt, state, flash, config }) {
   const reqs = state.requests;
   if (!reqs.length) return null;
   const where = { away: " while you were away", public: " in a public channel", big: " in a big channel", unknown: " in a channel it can't check" };
+  const isAccess = (r) => r.kind === "access" || r.kind === "away";
   return h(Card, { h },
-    h(Title, { h, sub: "for you", n, right: h(Badge, { h }, reqs.length) }, "Waiting"),
+    h(Title, { h, sub: "for you", right: h(Badge, { h }, reqs.length) }, "Waiting"),
     h(Sub, { h, style: { marginTop: -6 } }, config.paused ? "Sharing is paused. Resume it to answer these." : "Nothing has run for these, and no credits were used."),
     reqs.map((r) => h(Tile, { h, key: r.eventId, style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px 14px" } },
       h(Avatar, { h, name: r.fromName }),
       h("div", { style: { flex: "999 1 260px", minWidth: 0 } },
         h("p", { style: { margin: 0, fontSize: 13 } }, h("strong", null, r.fromName), " asked ", h("strong", null, r.agentName), where[r.kind] || "", h("span", { style: { color: T.subtle } }, ` · ${rt.channelName(r.channel)} · `), h(Mono, { h }, timeLabel(r.at))),
+        r.kind === "held" ? h("p", { style: { margin: "3px 0 0", fontSize: 12, fontWeight: 600, color: T.warn } }, `Held: ${String(r.detail || "over a limit").toLowerCase()}`) : null,
         h("p", { style: { margin: "3px 0 0", fontSize: 13, color: T.subtle, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, `“${r.text}”`)),
       h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } },
-        r.kind === "access" || r.kind === "away"
-          ? h(Btn, { h, kind: "sky", disabled: config.paused, onClick: async () => { await rt.approve(r.eventId, "week"); flash(`${r.fromName} can ask ${r.agentName} for 1 week. Answering now.`); } }, "Approve and answer")
+        isAccess(r)
+          ? h(Btn, { h, kind: "sky", disabled: config.paused, onClick: async () => { await rt.approve(r.eventId, "week"); flash(`${r.fromName} can ask ${r.agentName} for 1 week. Sent now.`); } }, "Give access for 1 week")
           : null,
-        h(Btn, { h, kind: r.kind === "access" || r.kind === "away" ? "quiet" : "sky", disabled: config.paused, onClick: async () => { await rt.answerOnce(r.eventId); flash(`Answering ${r.fromName} once`); } }, r.kind === "access" || r.kind === "away" ? "Answer once" : "Answer"),
+        h(Btn, { h, kind: isAccess(r) ? "quiet" : "sky", disabled: config.paused, onClick: async () => { await rt.answerOnce(r.eventId); flash(`Sent ${r.fromName}'s question to ${r.agentName}`); } }, isAccess(r) ? "Answer once" : r.kind === "held" ? "Answer anyway" : "Answer"),
         h(Btn, { h, onClick: () => { rt.dismiss(r.eventId); flash("Dismissed"); } }, "Dismiss")))));
 }
 
 function Overview(env) {
-  const { h, React, config, state, shared } = env;
+  const { h, React, rt, config, state, shared } = env;
   const [period, setPeriod] = React.useState("today");
   const [picked, setPicked] = React.useState(shared[0]?.pubkey);
-  const now = Date.now();
-  const windowMs = period === "today" ? core.DAY_MS : 7 * core.DAY_MS;
-  const answered = state.activity.filter((a) => now - a.at < windowMs && a.result === "ok").length;
-  const cap = period === "today" ? config.limits.total : config.limits.total * 7;
+  const today = period === "today";
+  // Today counts what the limits count: questions delivered since midnight.
+  const delivered = today ? rt.counters.today("t") : core.deliveredSince(state.activity, Date.now() - 7 * core.DAY_MS);
   const agent = shared.find((a) => a.pubkey === picked) || shared[0];
-  const resetLabel = period === "today" ? `${new Date().toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}, resets at midnight` : "The last 7 days";
+  const resetLabel = today ? `${new Date().toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}. Resets at midnight.` : "The last 7 days";
   return h(Fragment, null,
+    h(Requests, env),
     h(Card, { h },
-      h(Title, { h, sub: "all agents", n: 1 }, "Usage"),
+      h(Title, { h, sub: "all agents" }, "Usage"),
       h("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px 28px" } },
-        h("span", { style: { fontSize: "clamp(40px, 6vw, 60px)", fontWeight: 400, letterSpacing: "-0.05em", lineHeight: 1, fontVariantNumeric: "tabular-nums" } }, answered, h("span", { style: { color: T.grey } }, `/${cap}`)),
-        h("div", { style: { flex: "1 1 200px", fontSize: 13, lineHeight: 1.5 } }, h("span", { style: { color: T.subtle, display: "block" } }, `Requests answered ${period === "today" ? "today" : "this week"} · all agents`), h("strong", null, resetLabel)),
+        h("span", { style: { fontSize: "clamp(40px, 6vw, 60px)", fontWeight: 400, letterSpacing: "-0.05em", lineHeight: 1, fontVariantNumeric: "tabular-nums" } }, delivered, today ? h("span", { style: { color: T.grey } }, `/${config.limits.total}`) : null),
+        h("div", { style: { flex: "1 1 200px", fontSize: 13, lineHeight: 1.5 } }, h("span", { style: { color: T.subtle, display: "block" } }, today ? "Questions sent to your agents today, of your daily total" : "Questions sent to your agents this week"), h("strong", null, resetLabel)),
         h(Segmented, { h, label: "Period", value: period, onChange: setPeriod, options: [["today", "Today"], ["week", "Week"]] })),
-      h(Meter, { h, value: answered, of: cap }),
-      h("div", { style: { display: "flex", flexWrap: "wrap", gap: "6px 18px", alignItems: "center", fontSize: 13, paddingTop: 10, borderTop: `1px solid ${T.border}` } },
-        h("span", { style: { color: T.subtle } }, "Status"),
-        [[T.online, "Open, within limits"], [AMBER, "Near a limit"], [RED, "Paused or needs your OK"]].map(([c, t]) => h("span", { key: t, style: { display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 600 } }, h(Dot, { h, color: c }), t)))),
-    h(Requests, { ...env, n: 2 }),
-    agent && h(AgentFolder, { ...env, agent, setPicked }),
-    h(Limitations, { h }));
+      today ? h(Meter, { h, value: delivered, of: config.limits.total }) : null),
+    agent && h(AgentFolder, { ...env, agent, setPicked }));
 }
 
 /** Design A's folder tabs: one per shared agent, plus "Share another agent". */
 function AgentFolder(env) {
   const { h, React, rt, config, shared, people, channels, flash, go, ui, agent, setPicked } = env;
+  const [confirmStop, setConfirmStop] = React.useState(false);
   const cfg = config.agents[agent.pubkey];
-  const used = rt.counters.count(`d:${agent.pubkey}`, core.DAY_MS);
+  const used = rt.counters.today(`d:${agent.pubkey}`);
   const left = Math.max(0, config.limits.day - used);
   const paused = config.paused || cfg.paused;
-  const near = used / config.limits.day >= 0.8;
-  const stateColor = (a) => (config.paused || config.agents[a.pubkey].paused ? RED : rt.counters.count(`d:${a.pubkey}`, core.DAY_MS) / config.limits.day >= 0.8 ? AMBER : T.online);
+  const near = used / config.limits.day >= core.NEAR;
+  const stateColor = (a) => (config.paused || config.agents[a.pubkey].paused ? RED : rt.counters.today(`d:${a.pubkey}`) / config.limits.day >= core.NEAR ? AMBER : T.online);
   const chans = cfg.channels.map((id) => channels.find((c) => c.id === id) || { id, name: "a channel" });
   const names = people.filter((p) => p.agents.includes(agent.pubkey)).map((p) => (p.name || rt.nameOf(p.pubkey)).split(" ")[0]);
   const reach = new Set(people.filter((p) => p.agents.includes(agent.pubkey)).map((p) => p.pubkey));
-  for (const c of chans) for (const m of c.members || []) if (m !== agent.owner) reach.add(m);
+  for (const c of chans) for (const m of c.members || []) if (m !== agent.owner && !rt.isAgent(m)) reach.add(m);
   const kind = /codex/.test(agent.type || "") ? "Codex" : /goose/.test(agent.type || "") ? "Goose" : /\bpi\b|\/pi/.test(agent.type || "") ? "Pi" : "Claude";
   const tabStyle = (on) => ({ display: "inline-flex", alignItems: "center", gap: 10, height: 42, padding: "0 16px 0 8px", border: 0, borderRadius: "16px 16px 0 0", font: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer", background: on ? AMBER : T.card, color: on ? INK : T.text });
   const tileIcon = (icon) => h("span", { "aria-hidden": true, style: { width: 34, height: 34, borderRadius: "50%", border: `1px solid ${T.prominent}`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: T.subtle } }, h(Icon, { h, name: icon }));
@@ -361,15 +357,17 @@ function AgentFolder(env) {
       }),
       h("button", { type: "button", onClick: () => go("share"), style: { ...tabStyle(false), background: T.primary, color: T.onPrimary } },
         h("span", { style: { width: 30, height: 30, borderRadius: "50%", background: "rgba(127,127,127,.35)", display: "inline-flex", alignItems: "center", justifyContent: "center" } }, h(Icon, { h, name: "plus", size: 15 })), "Share another agent")),
+    h("div", { "aria-label": "What the dots mean", style: { display: "flex", flexWrap: "wrap", gap: "4px 16px", padding: "8px 14px 10px", fontSize: 12, color: T.subtle } },
+      [[T.online, "Shared, within limits"], [AMBER, "Close to today's limit"], [RED, "Paused"]].map(([c, t]) => h("span", { key: t, style: { display: "inline-flex", alignItems: "center", gap: 6 } }, h(Dot, { h, color: c }), t))),
     h(Card, { h, style: { borderTop: `6px solid ${AMBER}`, borderRadius: "0 26px 26px 26px" } },
-      h(Title, { h, sub: "shared with", n: 3, right: h("span", { style: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 } }, h(Toggle, { h, ui, on: !cfg.paused, label: `Share ${agent.name}`, onChange: (on) => rt.config.set((c) => ({ ...c, agents: { ...c.agents, [agent.pubkey]: { ...c.agents[agent.pubkey], paused: !on } } }), { now: true }) }), cfg.paused ? "Paused" : "Shared") }, agent.name),
+      h(Title, { h, sub: "shared with", right: h("span", { style: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 } }, h(Toggle, { h, ui, on: !cfg.paused, label: `Share ${agent.name}`, onChange: (on) => rt.config.set((c) => ({ ...c, agents: { ...c.agents, [agent.pubkey]: { ...c.agents[agent.pubkey], paused: !on } } }), { now: true }) }), cfg.paused ? "Paused" : "Shared") }, agent.name),
       h("span", { style: { fontSize: 13, color: T.subtle, marginTop: -8 } }, `${kind} · ${plural(reach.size, "person", "people")} can use it`),
       h("div", { style: { display: "flex", alignItems: "baseline", gap: 12 } },
         h("span", { style: { fontSize: 36, fontWeight: 400, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" } }, used, h("span", { style: { fontSize: 18, fontWeight: 600 } }, ` of ${config.limits.day}`)),
-        h("strong", { style: { fontSize: 13 } }, "requests today")),
+        h("strong", { style: { fontSize: 13 } }, "questions today")),
       h(Meter, { h, value: used, of: config.limits.day }),
       h("div", { style: { display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, fontSize: 13, marginTop: -6 } },
-        h("strong", { style: { color: near ? T.warn : T.text } }, paused ? "Paused: mentions are held" : `${left} left today`), h("span", { style: { color: T.subtle } }, `${config.limits.hour} per person each hour`)),
+        h("strong", { style: { color: near ? T.warn : T.text } }, paused ? "Paused: mentions are held" : `${left} left today · resets at midnight`), h("span", { style: { color: T.subtle } }, `${config.limits.hour} per person each hour`)),
       h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 12 } },
         chans.map((c) => h(Tile, { h, key: c.id, style: { minHeight: 110, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 14 } },
           tileIcon(c.visibility === "public" ? "globe" : "lock"),
@@ -381,13 +379,36 @@ function AgentFolder(env) {
           style: { minHeight: 110, borderRadius: 16, border: `1.5px dashed ${T.prominent}`, background: "transparent", font: "inherit", color: T.text, cursor: "pointer", textAlign: "left", padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "space-between" } },
           tileIcon("plus"),
           h("span", null, h("span", { style: { fontSize: 12, color: T.subtle, display: "block" } }, "Channel or person"), h("strong", { style: { fontSize: 15 } }, "Add")))),
+      confirmStop && h("div", { role: "alert", style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px 14px", padding: "12px 14px", borderRadius: 14, background: T.dangerBg } },
+        h("p", { style: { margin: 0, flex: "999 1 260px", fontSize: 13 } }, h("strong", null, `Stop sharing ${agent.name}?`), " Its channels and the people you added for it are removed. You can share it again later."),
+        h(Btn, { h, kind: "danger", onClick: () => { rt.config.set((c) => { const agents = { ...c.agents }; delete agents[agent.pubkey]; return { ...c, agents, people: c.people.map((p) => ({ ...p, agents: p.agents.filter((k) => k !== agent.pubkey) })).filter((p) => p.agents.length) }; }, { now: true }); setConfirmStop(false); flash(`${agent.name} is no longer shared`); } }, "Stop sharing"),
+        h(Btn, { h, onClick: () => setConfirmStop(false) }, "Keep sharing")),
       h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" } },
         h(Btn, { h, onClick: async () => flash((await rt.copy(core.howTo(agent.name, config.limits))) ? "How-to copied. Paste it in your channel." : "Couldn't copy") }, h(Icon, { h, name: "copy" }), "Copy how-to"),
         h(MoreMenu, { h, React, ui, label: `More actions for ${agent.name}`, items: [
-          { label: "Change limits", onSelect: () => go("limits") },
           { label: "See activity", onSelect: () => go("activity") },
-          { label: "Stop sharing", danger: true, onSelect: () => { rt.config.set((c) => { const agents = { ...c.agents }; delete agents[agent.pubkey]; return { ...c, agents, people: c.people.map((p) => ({ ...p, agents: p.agents.filter((k) => k !== agent.pubkey) })) }; }, { now: true }); flash(`${agent.name} is no longer shared`); } },
+          { label: "Stop sharing", danger: true, onSelect: () => setConfirmStop(true) },
         ] }))));
+}
+
+/** One way to find a person, used by Share and People: type a name or paste an npub. */
+function PersonSearch({ h, React, rt, channels, exclude = [], onPick, hint, style }) {
+  const [query, setQuery] = React.useState("");
+  const candidates = React.useMemo(() => {
+    const seen = new Map();
+    for (const c of channels) for (const m of c.members || []) if (!seen.has(m) && !rt.isAgent(m)) seen.set(m, rt.nameOf(m));
+    return [...seen].map(([pubkey, name]) => ({ pubkey, name })).filter((c) => !c.name.endsWith("…"));
+  }, [channels]);
+  const q = query.trim().toLowerCase();
+  const asKey = core.toPubkey(query);
+  const matches = q ? candidates.filter((c) => c.name.toLowerCase().includes(q) && !exclude.includes(c.pubkey)).slice(0, 6) : [];
+  if (asKey && !exclude.includes(asKey) && !matches.some((m) => m.pubkey === asKey)) matches.unshift({ pubkey: asKey, name: rt.nameOf(asKey) });
+  return h("div", { style: { display: "flex", flexDirection: "column", gap: 4, ...style } },
+    h(Field, { h, value: query, onChange: setQuery, label: "Search people", placeholder: "Search by name, or paste an npub", style: { background: T.card } }),
+    q && !matches.length ? h(Sub, { h, style: { padding: "4px 6px" } }, "Nobody matches. Paste their npub instead.") : null,
+    matches.map((m) => h("button", { key: m.pubkey, type: "button", onClick: () => { onPick(m); setQuery(""); },
+      style: { display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "6px 10px", border: 0, borderRadius: 12, background: T.card, font: "inherit", fontSize: 13, color: T.text, cursor: "pointer", textAlign: "left" } },
+      h(Avatar, { h, name: m.name }), m.name, hint ? h("span", { style: { marginLeft: "auto", color: T.subtle } }, hint) : null)));
 }
 
 // ----- share -----
@@ -398,7 +419,6 @@ function Share(env) {
   const pickedAgent = agentList.find((a) => a.pubkey === picked);
   const [chosen, setChosen] = React.useState(() => new Set([...(config.agents[picked]?.channels || []), ...(state.prefill ? [state.prefill] : [])]));
   const [added, setAdded] = React.useState([]);
-  const [query, setQuery] = React.useState("");
   const [dur, setDur] = React.useState("week");
   const [confirmed, setConfirmed] = React.useState(false);
   const [done, setDone] = React.useState(false);
@@ -411,19 +431,10 @@ function Share(env) {
   const needsConfirm = risky.length > 0 && !confirmed;
   const reach = new Set(added.map((p) => p.pubkey));
   for (const id of chosen) for (const m of channels.find((c) => c.id === id)?.members || []) reach.add(m);
-  const candidates = React.useMemo(() => {
-    const seen = new Map();
-    for (const c of channels) for (const m of c.members || []) if (!seen.has(m)) seen.set(m, rt.nameOf(m));
-    return [...seen].map(([pubkey, name]) => ({ pubkey, name })).filter((c) => !c.name.endsWith("…"));
-  }, [channels]);
-  const q = query.trim().toLowerCase();
-  const asKey = core.toPubkey(query);
-  const matches = q ? candidates.filter((c) => c.name.toLowerCase().includes(q) && !added.some((a) => a.pubkey === c.pubkey)).slice(0, 5) : [];
-  if (asKey && !matches.some((m) => m.pubkey === asKey)) matches.unshift({ pubkey: asKey, name: rt.nameOf(asKey) });
   const durLabel = (id) => core.DURATIONS.find((d) => d.id === id).label;
 
-  const titles = [["Which agent", "do you want to share?"], ["Who can ask", "your agent?"], ["Set some", "limits"], ["Check", "and share"]];
-  const helps = ["Only agents running on this computer can be shared.", "Pick channels, add people one by one, or both.", "Mentions over a limit are held, not answered. You can change these any time.", "Nothing is shared until you press the button."];
+  const titles = [["Which agent", "do you want to share?"], ["Who can ask", "your agent?"], ["Check", "and share"]];
+  const helps = ["Only agents running on this computer can be shared.", "Pick channels, add people one by one, or both.", "Nothing is shared until you press the button."];
   const canNext = step === 1 ? Boolean(pickedAgent?.support.ok) : step === 2 ? (chosen.size > 0 || added.length > 0) && !needsConfirm : true;
   const finish = () => {
     rt.config.set((c) => ({ ...c, agents: { ...c.agents, [picked]: { channels: [...chosen], paused: false } } }), { now: true });
@@ -443,7 +454,7 @@ function Share(env) {
     h(Title, { h, sub: titles[step - 1][1], n: step }, titles[step - 1][0]),
     h(Sub, { h, style: { marginTop: -8 } }, helps[step - 1]),
     h("ol", { "aria-label": "Steps", style: { listStyle: "none", margin: 0, padding: 0, display: "flex", flexWrap: "wrap", gap: 8 } },
-      ["Agent", "Who can ask", "Limits", "Review"].map((l, i) => {
+      ["Agent", "Who can ask", "Review"].map((l, i) => {
         const n = i + 1, on = step === n, past = step > n;
         return h("li", { key: l, "aria-current": on ? "step" : undefined, style: { display: "inline-flex", alignItems: "center", gap: 8, height: 36, padding: "0 14px 0 5px", borderRadius: 999, fontSize: 13, fontWeight: 700, background: on ? T.primary : T.tile, color: on ? T.onPrimary : T.text } },
           h("span", { style: { width: 26, height: 26, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", background: on ? SKY : past ? T.okBg : T.card, color: on ? ON_ACCENT : T.text, fontFamily: MONO, fontSize: 11 } }, past ? h(Icon, { h, name: "check", size: 13 }) : String(n).padStart(2, "0")), l);
@@ -476,27 +487,23 @@ function Share(env) {
       h(Tile, { h, style: { display: "flex", flexDirection: "column", gap: 10 } },
         h("strong", null, "People, one by one"), h(Sub, { h }, "For someone who isn't in those channels. Their access ends on its own."),
         added.length ? h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, added.map((p) => h(Chip, { h, key: p.pubkey }, `${p.name} · ${durLabel(p.dur)}`, h("button", { type: "button", "aria-label": `Remove ${p.name}`, onClick: () => setAdded(added.filter((x) => x.pubkey !== p.pubkey)), style: { border: 0, background: "none", cursor: "pointer", color: T.subtle, display: "inline-flex", padding: 2 } }, h(Icon, { h, name: "x", size: 14 }))))) : null,
-        h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" } },
-          h(Field, { h, value: query, onChange: setQuery, label: "Search people", placeholder: "Search by name, or paste an npub", style: { flex: "1 1 240px", background: T.card } }),
-          h(Pills, { h, label: "How long", value: dur, onChange: setDur, options: core.DURATIONS.map((d) => [d.id, d.label]) })),
-        matches.length ? h("div", { style: { display: "flex", flexDirection: "column", gap: 2 } }, matches.map((m) => h("button", { key: m.pubkey, type: "button", onClick: () => { setAdded([...added, { ...m, dur }]); setQuery(""); },
-          style: { display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "6px 10px", border: 0, borderRadius: 12, background: T.card, font: "inherit", fontSize: 13, color: T.text, cursor: "pointer", textAlign: "left" } },
-          h(Avatar, { h, name: m.name }), m.name, h("span", { style: { marginLeft: "auto", color: T.subtle, fontSize: 13 } }, `Add for ${durLabel(dur).toLowerCase()}`)))) : null)),
-    step === 3 && h(LimitFields, env),
-    step === 4 && h(Tile, { h, style: { display: "flex", flexDirection: "column", gap: 12, padding: 20 } },
+        h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" } },
+          h(PersonSearch, { h, React, rt, channels, style: { flex: "1 1 260px" }, exclude: added.map((a) => a.pubkey), hint: `Add for ${durLabel(dur).toLowerCase()}`, onPick: (m) => setAdded([...added, { ...m, dur }]) }),
+          h(Pills, { h, label: "How long", value: dur, onChange: setDur, options: core.DURATIONS.map((d) => [d.id, d.label]) })))),
+    step === 3 && h(Tile, { h, style: { display: "flex", flexDirection: "column", gap: 12, padding: 20 } },
       h("p", { style: { margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: 10 } }, h(AgentMark, { h, pubkey: picked, name: pickedAgent?.name, size: 28 }), pickedAgent?.name),
       h("p", { style: { margin: 0, fontSize: 14 } }, h("strong", null, "Who: "), [...[...chosen].map((id) => "#" + (channels.find((c) => c.id === id)?.name || "channel")), ...added.map((p) => `${p.name} (${durLabel(p.dur)})`)].join(", ") || "Nobody yet"),
-      h("p", { style: { margin: 0, fontSize: 14 } }, h("strong", null, "Limits: "), `${config.limits.hour} an hour per person · ${config.limits.day} a day for this agent · ${config.limits.total} a day in total`),
+      h("p", { style: { margin: 0, fontSize: 14 } }, h("strong", null, "Limits: "), `${config.limits.hour} an hour for each person · ${config.limits.day} a day for each agent · ${config.limits.total} a day for all agents together. `, h("button", { type: "button", onClick: () => go("limits"), style: { border: 0, background: "none", padding: 0, font: "inherit", color: T.text, textDecoration: "underline", cursor: "pointer" } }, "Change limits"), h("span", { style: { color: T.subtle } }, " (they apply to all your shared agents)")),
       h("p", { style: { margin: 0, fontSize: 14 } }, h("strong", null, "Asks you first: "), [config.ask.public && "public channels", config.ask.big && `channels over ${core.BIG_CHANNEL} people`, config.ask.unknown && "channels it can't check"].filter(Boolean).join(", ") || "never"),
       h("div", { style: { display: "flex", alignItems: "baseline", gap: 10, paddingTop: 12, borderTop: `1px solid ${T.border}` } },
         h("span", { style: { fontSize: 30, fontWeight: 400, letterSpacing: "-0.04em", lineHeight: 1 } }, reach.size), h("strong", null, `${reach.size === 1 ? "person" : "people"} will be able to ask ${pickedAgent?.name}`))),
     h("div", { style: { display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 10, paddingTop: 14, borderTop: `1px solid ${T.border}` } },
       h(Btn, { h, onClick: () => (step > 1 ? setStep(step - 1) : go("overview")) }, step > 1 ? "← Back" : "Cancel"),
-      h(Btn, { h, kind: step < 4 ? "primary" : "sky", disabled: !canNext, onClick: () => (step < 4 ? setStep(step + 1) : finish()) }, step < 4 ? "Next →" : "Start sharing")));
+      h(Btn, { h, kind: step < 3 ? "primary" : "sky", disabled: !canNext, onClick: () => (step < 3 ? setStep(step + 1) : finish()) }, step < 3 ? "Next →" : "Start sharing")));
 }
 
 function LimitFields({ h, rt, config }) {
-  const defs = [["hour", "Per person, each hour", [5, 10, 20]], ["day", "Per agent, each day", [25, 50, 100]], ["total", "All agents together, each day", [50, 100, 200]]];
+  const defs = [["hour", "Each person, for each agent, in any hour", [5, 10, 20]], ["day", "Each agent, per day (resets at midnight)", [25, 50, 100]], ["total", "All agents together, per day (resets at midnight)", [50, 100, 200]]];
   const set = (k, v) => rt.config.set((c) => ({ ...c, limits: { ...c.limits, [k]: Math.max(1, v) } }), { now: true });
   const pill = (on) => ({ minWidth: 52, height: 40, padding: "0 14px", borderRadius: 999, font: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer", border: `1px solid ${on ? T.primary : T.prominent}`, background: on ? T.primary : "transparent", color: on ? T.onPrimary : T.text });
   return h("div", { style: { display: "flex", flexDirection: "column", gap: 16 } },
@@ -519,12 +526,11 @@ function People(env) {
   const [pick, setPick] = React.useState(null);
   const [agents, setAgents] = React.useState(() => new Set(shared.slice(0, 1).map((a) => a.pubkey)));
   const [dur, setDur] = React.useState("week");
-  const [addQuery, setAddQuery] = React.useState("");
   const byMember = new Map();
   for (const a of shared) for (const id of config.agents[a.pubkey].channels) {
     const c = channels.find((x) => x.id === id);
     for (const m of c?.members || []) {
-      if (m === a.owner || people.some((p) => p.pubkey === m)) continue;
+      if (m === a.owner || rt.isAgent(m) || people.some((p) => p.pubkey === m)) continue;
       const e = byMember.get(m) || { pubkey: m, channels: new Set(), agents: new Set() };
       e.channels.add(c.name); e.agents.add(a.pubkey); byMember.set(m, e);
     }
@@ -533,31 +539,24 @@ function People(env) {
     ...people.map((p) => ({ pubkey: p.pubkey, name: p.name || rt.nameOf(p.pubkey), how: "Added by you", agents: p.agents, ends: core.endsLabel(p.until), manual: true })),
     ...[...byMember.values()].map((e) => ({ pubkey: e.pubkey, name: rt.nameOf(e.pubkey), how: [...e.channels].map((c) => "#" + c).join(", "), agents: [...e.agents], ends: "While in the channel", manual: false })),
   ].filter((r) => !query || r.name.toLowerCase().includes(query.toLowerCase()));
-  const candidates = [];
-  const seen = new Set();
-  for (const c of channels) for (const m of c.members || []) if (!seen.has(m)) { seen.add(m); const name = rt.nameOf(m); if (!name.endsWith("…")) candidates.push({ pubkey: m, name }); }
-  const aq = addQuery.trim().toLowerCase();
-  const key = core.toPubkey(addQuery);
-  const options = (aq ? candidates.filter((c) => c.name.toLowerCase().includes(aq)) : candidates).slice(0, 8);
-  if (key && !options.some((o) => o.pubkey === key)) options.unshift({ pubkey: key, name: rt.nameOf(key) });
   const give = () => {
     if (!pick || !agents.size) return;
     rt.addPerson({ pubkey: pick.pubkey, name: pick.name, agents: [...agents], durationId: dur });
     flash(`${pick.name} can ask now`);
-    setAdding(false); setPick(null); setAddQuery("");
+    setAdding(false); setPick(null);
   };
   return h(Fragment, null,
     adding && h(Card, { h, style: { outline: `2px solid ${T.focus}` } },
-      h(Title, { h, sub: "for a while, or until you stop", n: 1, right: h(Btn, { h, label: "Close", onClick: () => setAdding(false), style: { width: 38, padding: 0 } }, h(Icon, { h, name: "x" })) }, "Add a person"),
-      h(Field, { h, value: addQuery, onChange: setAddQuery, label: "Search by name", placeholder: "Search by name, or paste an npub" }),
-      h(Pills, { h, label: "Person", value: pick?.pubkey, onChange: (pk) => setPick(options.find((o) => o.pubkey === pk)), options: options.map((o) => [o.pubkey, o.name]) }),
+      h(Title, { h, sub: "for a while, or until you stop", right: h(Btn, { h, label: "Close", onClick: () => setAdding(false), style: { width: 38, padding: 0 } }, h(Icon, { h, name: "x" })) }, "Add a person"),
+      pick
+        ? h("div", { style: { display: "flex", alignItems: "center", gap: 10 } }, h(Avatar, { h, name: pick.name }), h("strong", null, pick.name), h(Btn, { h, onClick: () => setPick(null), style: { minHeight: 28 } }, "Change"))
+        : h(PersonSearch, { h, React, rt, channels, exclude: people.map((p) => p.pubkey), onPick: setPick }),
       h("div", { style: { display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center" } }, h("strong", { style: { fontSize: 13 } }, "Agents"),
         shared.map((a) => h("label", { key: a.pubkey, style: { display: "inline-flex", gap: 6, fontSize: 13, alignItems: "center" } }, h("input", { type: "checkbox", checked: agents.has(a.pubkey), onChange: () => { const n = new Set(agents); n.has(a.pubkey) ? n.delete(a.pubkey) : n.add(a.pubkey); setAgents(n); }, style: { accentColor: INK } }), h(AgentMark, { h, pubkey: a.pubkey, name: a.name, size: 20 }), a.name))),
       h("div", { style: { display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" } }, h("strong", { style: { fontSize: 13 } }, "For"), h(Pills, { h, label: "How long", value: dur, onChange: setDur, options: core.DURATIONS.map((d) => [d.id, d.label]) })),
       h("div", null, h(Btn, { h, kind: "sky", disabled: !pick || !agents.size, onClick: give }, pick ? `Give ${pick.name} access` : "Pick someone first"))),
-    h(Requests, { ...env, n: 2 }),
     h(Card, { h },
-      h(Title, { h, sub: `${plural(rows.length, "person", "people")} can ask`, n: 3, right: h(Btn, { h, kind: "primary", disabled: !shared.length, onClick: () => setAdding(!adding) }, h(Icon, { h, name: "user-plus" }), "Add a person") }, "People"),
+      h(Title, { h, sub: `${plural(rows.length, "person", "people")} can ask`, right: h(Btn, { h, kind: "primary", disabled: !shared.length, onClick: () => setAdding(!adding) }, h(Icon, { h, name: "user-plus" }), "Add a person") }, "People"),
       h(Field, { h, value: query, onChange: setQuery, label: "Search names", placeholder: "Search names", style: { maxWidth: 280 } }),
       h("div", { style: { display: "flex", flexDirection: "column", gap: 6 } },
         rows.length ? rows.map((r) => h(Tile, { h, key: r.pubkey, style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 16px", padding: "10px 14px" } },
@@ -572,11 +571,11 @@ function People(env) {
 // ----- activity -----
 function Activity({ h, React, rt, state, agentName }) {
   const [filter, setFilter] = React.useState("all");
-  const keys = [["all", "All"], ["ok", "Answered"], ["held", "Held"], ["req", "Asked you"], ["drop", "Not delivered"], ["away", "While away"]];
+  const keys = [["all", "All"], ["ok", "Delivered"], ["held", "Held"], ["req", "Asked you"], ["drop", "Not delivered"], ["away", "While away"]];
   const rows = state.activity.filter((a) => filter === "all" || a.result === filter).slice(0, 200);
   const dotFor = { ok: T.online, held: AMBER, away: AMBER, req: RED, drop: "#8F8A7C", refused: "#8F8A7C" };
   return h(Card, { h },
-    h(Title, { h, sub: "latest first", n: 1 }, "Activity"),
+    h(Title, { h, sub: "latest first" }, "Activity"),
     h(Callout, { h, icon: "lock" }, "Only who, which agent, where and when are kept here, on this computer, for 30 days. ", h("strong", null, "What people asked stays in Buzz"), ", in the thread."),
     h(Pills, { h, label: "Filter", value: filter, onChange: setFilter, options: keys.map(([k, l]) => [k, `${l} ${k === "all" ? state.activity.length : state.activity.filter((a) => a.result === k).length}`]) }),
     h("div", { style: { display: "flex", flexDirection: "column", gap: 6 } },
@@ -600,22 +599,23 @@ function Limits(env) {
     h("div", { style: { flex: 1 } }, h("p", { style: { margin: 0, fontSize: 14, fontWeight: 700 } }, label), h(Sub, { h, style: { marginTop: 2, fontSize: 13 } }, help)),
     h(Toggle, { h, ui, on: config[group][k], onChange: (v) => setGroup(group, k, v), label })));
   return h(Fragment, null,
-    h(Card, { h }, h(Title, { h, sub: "per person and per agent", n: 1 }, "Limits"), h(LimitFields, env),
-      h(Callout, { h, icon: "hourglass", tone: "warn" }, "When a limit is reached, mentions are ", h("strong", null, "held, not answered"), ". You can see them in Activity.")),
-    h(Card, { h }, h(Title, { h, sub: "before answering", n: 2 }, "Ask me first"), rows("ask", [
+    h(Card, { h }, h(Title, { h, sub: "for all your shared agents" }, "Limits"), h(LimitFields, env),
+      h(Callout, { h, icon: "hourglass", tone: "warn" }, "When a limit is reached, mentions are ", h("strong", null, "held, not answered"), ". They wait for you on Overview, where you can answer them anyway.")),
+    h(Card, { h }, h(Title, { h, sub: "before answering" }, "Ask me first"), rows("ask", [
       ["public", "Public channels", "Anyone can join them, so you check each question first."],
       ["big", `Channels with more than ${core.BIG_CHANNEL} people`, "Bigger rooms, more chances of surprise."],
       ["unknown", "Channels Agent Access can't check", "If it can't see who's in a channel, it asks you."]])),
-    h(Card, { h }, h(Title, { h, sub: "quiet by default", n: 3 }, "Alerts"), rows("alerts", [
+    h(Card, { h }, h(Title, { h, sub: "quiet by default" }, "Alerts"), rows("alerts", [
       ["toast", "Someone asks for access", "A notice in Buzz with Give access, Answer once and Dismiss."],
-      ["near", "An agent is close to a limit", "At most once a day per agent."],
+      ["near", "An agent is close to its daily limit", "At 80% of the limit, at most once a day per agent."],
       ["summary", "Daily summary after 6 pm", "Who asked which agent, in one notification."],
-      ["every", "Every answer", "Off by default. It gets noisy."]])));
+      ["every", "Every question sent to an agent", "Off by default. It gets noisy."]])));
 }
 
 // ----- settings -----
 function Settings({ h, React, rt, flash }) {
   const [confirmStop, setConfirmStop] = React.useState(false);
+  const [confirmClear, setConfirmClear] = React.useState(false);
   const exportCsv = async () => {
     const rows = [["time", "who", "agent", "channel", "result", "detail"], ...rt.state.get().activity.map((a) => [new Date(a.at).toISOString(), a.whoName || a.who, a.agent, rt.channelName(a.channel), a.result, a.detail || ""])];
     const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -623,20 +623,25 @@ function Settings({ h, React, rt, flash }) {
   };
   return h(Fragment, null,
     h(Card, { h },
-      h(Title, { h, sub: `version ${VERSION}`, n: 1 }, "Agent Access"),
+      h(Title, { h, sub: `version ${VERSION}` }, "Agent Access"),
       h(Sub, { h }, rt.guarded ? "Uses Buzz's checked delivery: a message is handed over only if sharing is still on." : "Basic delivery on this version of Buzz."),
       h(Sub, { h }, "Updates install with Buzz's plugin updates. Settings and activity stay on this computer.")),
     h(Card, { h },
-      h(Title, { h, sub: "can be shared", n: 2 }, "Which agents"),
+      h(Title, { h, sub: "can be shared" }, "Which agents"),
       h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 } },
         h(Tile, { h, style: { background: T.okBg, color: T.ok } }, h("strong", { style: { display: "inline-flex", alignItems: "center", gap: 6 } }, h(Icon, { h, name: "check" }), "Supported"), h("p", { style: { margin: "4px 0 0", fontSize: 13 } }, "Claude, Codex, Goose and Pi agents running on this computer")),
-        h(Tile, { h }, h("strong", { style: { display: "inline-flex", alignItems: "center", gap: 6 } }, h(Icon, { h, name: "x" }), "Not supported"), h("p", { style: { margin: "4px 0 0", fontSize: 13, color: T.subtle } }, "Shared compute and Builderlab agents. They run somewhere else, so this plugin can't reach them.")))),
+        h(Tile, { h }, h("strong", { style: { display: "inline-flex", alignItems: "center", gap: 6 } }, h(Icon, { h, name: "x" }), "Not supported"), h("p", { style: { margin: "4px 0 0", fontSize: 13, color: T.subtle } }, "Shared compute and Builderlab agents. They run somewhere else, so this plugin can't reach them."))),
+      h(Sub, { h }, "Sharing works only while Buzz is open on this computer. Direct messages to your agent aren't passed on yet. Your agent answers with your account and credits, and messages from other agents are ignored unless you add that agent by hand.")),
     h(Card, { h, style: { flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" } },
-      h("div", { style: { flex: "999 1 240px" } }, h(Title, { h, sub: "metadata only, 30 days", n: 3 }, "Your data")),
+      h("div", { style: { flex: "999 1 240px" } }, h(Title, { h, sub: "metadata only, 30 days" }, "Your data")),
       h(Btn, { h, onClick: exportCsv }, "Copy activity as CSV"),
-      h(Btn, { h, onClick: () => { rt.state.set((s) => ({ ...s, activity: [] }), { now: true }); flash("Activity cleared"); } }, "Clear activity")),
+      confirmClear
+        ? h(Fragment, null,
+            h(Btn, { h, kind: "danger", onClick: () => { rt.state.set((s) => ({ ...s, activity: [] }), { now: true }); setConfirmClear(false); flash("Activity cleared"); } }, "Yes, clear it"),
+            h(Btn, { h, onClick: () => setConfirmClear(false) }, "Keep it"))
+        : h(Btn, { h, onClick: () => setConfirmClear(true) }, "Clear activity")),
     h(Card, { h, style: { flexDirection: "row", flexWrap: "wrap", gap: 12, alignItems: "center", background: T.dangerBg } },
-      h("div", { style: { flex: "999 1 260px" } }, h(Title, { h, sub: "and go back to only you", n: 4 }, "Stop sharing everything"), h(Sub, { h, style: { marginTop: 6 } }, "Removes all channels and people.")),
+      h("div", { style: { flex: "999 1 260px" } }, h(Title, { h, sub: "and go back to only you" }, "Stop sharing everything"), h(Sub, { h, style: { marginTop: 6 } }, "Removes all channels and people.")),
       confirmStop
         ? h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
             h(Btn, { h, kind: "danger", onClick: () => { rt.config.set((c) => ({ ...c, agents: {}, people: [] }), { now: true }); setConfirmStop(false); flash("Stopped sharing everything"); } }, "Yes, stop everything"),

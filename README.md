@@ -134,6 +134,13 @@ npm test           # 21 tests: rules, limits, requests, delivery, channel menu
 
 ## Changelog
 
+- **v4.4:** daily limits reset at midnight, and only questions that reach your agent
+  count. Mentions held by a limit or a pause wait on Overview, where you can answer
+  them anyway. Other agents can't wake yours unless you add them by hand. One "Waiting
+  for you" list (on Overview), one way to add a person, a three-step Share, clearer
+  limit labels, the dot legend next to the dots, and confirmations before stopping an
+  agent or clearing activity.
+
 - **v4.3:** Agent Access is now an app in Buzz's left dock, with its own line icon, and
   uses the full width of the window. Text, cards and buttons are smaller, closer to
   Buzz's own size.

@@ -146,16 +146,26 @@ function grantFor(config, agentPubkey, sender, channelId, now = Date.now()) {
   return undefined;
 }
 
-/** Sliding-window counters, saved as plain timestamps. */
+/** Local midnight before `now`: daily limits and "today" start here. */
+const startOfDay = (now = Date.now()) => { const d = new Date(now); d.setHours(0, 0, 0, 0); return d.getTime(); };
+
+/** Counters saved as plain timestamps: the hourly limit is any 60 minutes, daily ones reset at midnight. */
 function createCounters(saved = {}) {
   const hits = new Map(Object.entries(saved).map(([k, v]) => [k, Array.isArray(v) ? v.filter(Number.isFinite) : []]));
   const recent = (key, windowMs, now) => (hits.get(key) || []).filter((t) => now - t < windowMs);
   return {
     count: (key, windowMs, now = Date.now()) => recent(key, windowMs, now).length,
+    today: (key, now = Date.now()) => recent(key, now - startOfDay(now) + 1, now).length,
     add(key, now = Date.now()) {
       const list = recent(key, DAY_MS, now);
       list.push(now);
       hits.set(key, list);
+    },
+    /** Takes back one use recorded at `at` (a question that wasn't delivered). */
+    remove(key, at) {
+      const list = hits.get(key) || [];
+      const i = list.lastIndexOf(at);
+      if (i >= 0) list.splice(i, 1);
     },
     toJSON(now = Date.now()) {
       const out = {};
@@ -171,16 +181,28 @@ function createCounters(saved = {}) {
 /** Which limit, if any, stops this request. */
 function limitHit(config, counters, agentPubkey, sender, now = Date.now()) {
   if (counters.count(`h:${agentPubkey}:${sender}`, HOUR_MS, now) >= config.limits.hour) return "hour";
-  if (counters.count(`d:${agentPubkey}`, DAY_MS, now) >= config.limits.day) return "day";
-  if (counters.count("t", DAY_MS, now) >= config.limits.total) return "total";
+  if (counters.today(`d:${agentPubkey}`, now) >= config.limits.day) return "day";
+  if (counters.today("t", now) >= config.limits.total) return "total";
   return undefined;
 }
 function countUse(counters, agentPubkey, sender, now = Date.now()) {
   counters.add(`h:${agentPubkey}:${sender}`, now);
   counters.add(`d:${agentPubkey}`, now);
   counters.add("t", now);
+  return now;
+}
+/** Undoes countUse when the question wasn't delivered after all. */
+function uncountUse(counters, agentPubkey, sender, at) {
+  counters.remove(`h:${agentPubkey}:${sender}`, at);
+  counters.remove(`d:${agentPubkey}`, at);
+  counters.remove("t", at);
 }
 const LIMIT_TEXT = { hour: "Hit the hourly limit", day: "Agent hit today's limit", total: "Hit your daily total" };
+/** Share of a limit where things turn amber and the "close to a limit" alert fires. */
+const NEAR = 0.8;
+
+/** Delivered answers in the activity log since `since`, for one agent or all. */
+const deliveredSince = (activity, since, agent) => activity.filter((a) => a.result === "ok" && a.at >= since && (!agent || a.agent === agent)).length;
 
 /** Activity keeps metadata only: never what was asked. */
 function addActivity(list, entry, now = Date.now()) {
@@ -266,8 +288,9 @@ function toPubkey(input) {
 }
 
 const core = {
-  PLUGIN_ID, STORAGE_KEY, STATE_KEY, LEGACY_KEYS, HOUR_MS, DAY_MS, BIG_CHANNEL, HEX64, DEFAULTS, DURATIONS, LIMIT_TEXT, INSTRUCTIONS,
+  PLUGIN_ID, STORAGE_KEY, STATE_KEY, LEGACY_KEYS, HOUR_MS, DAY_MS, BIG_CHANNEL, HEX64, DEFAULTS, DURATIONS, LIMIT_TEXT, INSTRUCTIONS, NEAR,
+  startOfDay, deliveredSince,
   emptyConfig, normalizeConfig, untilFor, endsLabel, supportOf, askReason, grantFor,
-  createCounters, limitHit, countUse, addActivity, addRequest, offlineGap, howTo,
+  createCounters, limitHit, countUse, uncountUse, addActivity, addRequest, offlineGap, howTo,
   threadRoot, channelOf, mentions, fromRelay, npubToHex, toPubkey,
 };

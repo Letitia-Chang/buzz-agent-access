@@ -27,6 +27,7 @@ export const COFFEE = hex(0xc0ffee);
 export const POTATO = hex(0xbada55);
 export const ANUSHKA = hex(0xa1);
 export const OMAR = hex(0x0a);
+export const BOT = hex(0xb07);
 export const TEAM = "team-channel";
 export const PUBLIC = "discover";
 
@@ -41,7 +42,7 @@ export function fakeHost({ guarded = true, notices = true, noticeAnswer = undefi
   ];
   const session = {
     channels: { list: () => channels, ensureList: () => {}, subscribeList: () => () => {} },
-    profiles: { snapshot: () => new Map([[ANUSHKA, { name: "Anushka" }], [OMAR, { name: "Omar" }]]) },
+    profiles: { snapshot: () => new Map([[ANUSHKA, { name: "Anushka" }], [OMAR, { name: "Omar" }], [BOT, { name: "Their bot", isAgent: true }]]) },
     observe: () => ({
       snapshot: () => ({ events }),
       subscribe: (l) => { viewListeners.add(l); return () => viewListeners.delete(l); },

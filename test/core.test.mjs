@@ -101,3 +101,14 @@ test("offline gaps, end labels and npubs", () => {
   assert.equal(core.toPubkey("npub1bad"), undefined);
   assert.match(core.howTo("Coffeehead", { hour: 5 }), /@Coffeehead/);
 });
+
+test("daily limits reset at local midnight; the hourly one is any 60 minutes", () => {
+  const midnight = new Date(2026, 10, 25, 0, 0, 0).getTime();
+  const c = core.createCounters();
+  core.countUse(c, "a", "p", midnight - 30 * 60_000); // 11:30 pm the day before
+  const config = { limits: { hour: 1, day: 1, total: 1 } };
+  const justAfter = midnight + 10 * 60_000;
+  assert.equal(c.today("t", justAfter), 0);
+  assert.equal(core.limitHit(config, c, "a", "p", justAfter), "hour"); // still within the hour
+  assert.equal(core.limitHit(config, c, "a", "p", midnight + 31 * 60_000), undefined);
+});

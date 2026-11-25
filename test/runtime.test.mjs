@@ -170,3 +170,48 @@ test("settings saved under the old Teammate access name carry over", () => {
   rt.config.set((c) => c, { now: true });
   assert.ok(localStorage.getItem(core.STORAGE_KEY), "saved under the new name from then on");
 });
+
+test("other agents can't wake a shared agent unless added by hand", async () => {
+  const { BOT } = await import("./helpers.mjs");
+  const { host, rt, stop } = setup({ agents: { [COFFEE]: { channels: [TEAM] } } });
+  host.post(mention(BOT, TEAM));
+  await tick(10);
+  assert.equal(host.wakes.length, 0);
+  assert.equal(rt.state.get().activity.length, 0);
+  rt.addPerson({ pubkey: BOT, name: "Their bot", agents: [COFFEE], durationId: "day" });
+  host.post(mention(BOT, TEAM));
+  await tick(10);
+  assert.equal(host.wakes.length, 1);
+  stop();
+});
+
+test("a mention held by a limit waits on Overview and can be answered anyway", async () => {
+  const { host, rt, stop } = setup({ agents: { [COFFEE]: { channels: [TEAM] } }, limits: { hour: 1, day: 50, total: 100 } });
+  host.post(mention(ANUSHKA, TEAM));
+  await tick(10);
+  host.post(mention(ANUSHKA, TEAM, hex(99)));
+  await tick(10);
+  assert.equal(host.wakes.length, 1);
+  const req = rt.state.get().requests.find((r) => r.kind === "held");
+  assert.equal(req.eventId, hex(99));
+  assert.equal(req.detail, "Hit the hourly limit");
+  await rt.answerOnce(hex(99));
+  assert.equal(host.wakes.length, 2);
+  assert.equal(rt.state.get().requests.length, 0);
+  stop();
+});
+
+test("a question that isn't delivered doesn't use up the limit", async () => {
+  const { host, rt, stop } = setup({ agents: { [COFFEE]: { channels: [TEAM] } }, limits: { hour: 1, day: 50, total: 100 } });
+  const original = host.ctx.agents.wake;
+  host.ctx.agents.wake = async () => ({ status: "dropped", reason: "unavailable" });
+  host.post(mention(ANUSHKA, TEAM));
+  await tick(10);
+  assert.equal(rt.counters.today("t"), 0);
+  host.ctx.agents.wake = original;
+  host.post(mention(ANUSHKA, TEAM));
+  await tick(10);
+  assert.equal(host.wakes.length, 1);
+  assert.equal(rt.counters.today("t"), 1);
+  stop();
+});
