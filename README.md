@@ -134,7 +134,9 @@ npm test           # 21 tests: rules, limits, requests, delivery, channel menu
 
 ## Changelog
 
-- **v4.2.1:** a line icon (people) for Buzz's left dock (Buzz tints it to match your theme).
+- **v4.3:** Agent Access is now an app in Buzz's left dock, with its own line icon, and
+  uses the full width of the window. Text, cards and buttons are smaller, closer to
+  Buzz's own size.
 
 - **v4.2:** new "Ink & clay" colours, shared with Team Hub: navy for important
   buttons, with sage, ochre and clay for status. Emojis are replaced by single-colour

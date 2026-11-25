@@ -128,15 +128,15 @@ function App({ React, ctx, rt }) {
     tab === "activity" && h(Activity, env),
     tab === "limits" && h(Limits, env),
     tab === "settings" && h(Settings, env),
-    toast && h("div", { role: "status", style: { position: "sticky", bottom: 16, alignSelf: "center", padding: "10px 18px", borderRadius: 999, background: T.primary, color: T.onPrimary, fontWeight: 600, fontSize: 14, boxShadow: "0 10px 30px rgba(0,0,0,.25)" } }, toast));
+    toast && h("div", { role: "status", style: { position: "sticky", bottom: 16, alignSelf: "center", padding: "10px 18px", borderRadius: 999, background: T.primary, color: T.onPrimary, fontWeight: 600, fontSize: 13, boxShadow: "0 10px 30px rgba(0,0,0,.25)" } }, toast));
 }
 
 // ----- building blocks -----
 function Page({ h, palette, children }) {
-  return h("div", { style: { ...palette, background: T.page, color: T.text, fontFamily: FONT, padding: "36px clamp(16px, 4vw, 44px) 64px", minHeight: "100%", overflowY: "auto", height: "100%", boxSizing: "border-box" } },
-    h("div", { style: { maxWidth: 980, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 } }, children));
+  return h("div", { style: { ...palette, background: T.page, color: T.text, fontFamily: FONT, fontSize: 14, lineHeight: 1.45, padding: "24px clamp(16px, 3vw, 32px) 48px", minHeight: "100%", overflowY: "auto", height: "100%", boxSizing: "border-box" } },
+    h("div", { style: { maxWidth: 920, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 } }, children));
 }
-const btnBase = { minHeight: 38, padding: "0 16px", borderRadius: 999, font: "inherit", fontSize: 14, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, whiteSpace: "nowrap" };
+const btnBase = { minHeight: 32, padding: "0 14px", borderRadius: 999, font: "inherit", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, whiteSpace: "nowrap" };
 const BTN = {
   primary: { ...btnBase, border: `1px solid ${T.primary}`, background: T.primary, color: T.onPrimary },
   quiet: { ...btnBase, border: `1px solid ${T.prominent}`, background: "transparent", color: T.text },
@@ -148,21 +148,21 @@ function Btn({ h, kind = "quiet", onClick, disabled, children, label, style }) {
 }
 /** The big rounded section card from design A. */
 function Card({ h, children, style }) {
-  return h("section", { style: { background: T.card, borderRadius: 26, padding: "22px 24px", display: "flex", flexDirection: "column", gap: 16, ...style } }, children);
+  return h("section", { style: { background: T.card, borderRadius: 20, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14, ...style } }, children);
 }
 /** The lighter tile inside a card. */
 function Tile({ h, children, style }) {
-  return h("div", { style: { background: T.tile, borderRadius: 16, padding: "14px 16px", ...style } }, children);
+  return h("div", { style: { background: T.tile, borderRadius: 14, padding: "12px 14px", ...style } }, children);
 }
 /** Two-tone card title, e.g. "Usage / all agents", with an optional {001} tag. */
 function Title({ h, children, sub, n, right }) {
   return h("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 } },
-    h("h2", { style: { margin: 0, fontSize: 22, lineHeight: 1.1, fontWeight: 700, letterSpacing: "-0.02em" } }, children, sub ? h("span", { style: { display: "block", color: T.grey } }, sub) : null),
+    h("h2", { style: { margin: 0, fontSize: 15, lineHeight: 1.15, fontWeight: 700, letterSpacing: "-0.02em" } }, children, sub ? h("span", { style: { display: "block", color: T.grey } }, sub) : null),
     h("span", { style: { display: "inline-flex", alignItems: "center", gap: 10 } }, right || null, n ? h("span", { style: { fontFamily: MONO, fontSize: 12, color: T.meta } }, tag(n)) : null));
 }
 function Callout({ h, icon, tone, children }) {
   const bg = tone === "warn" ? T.warnBg : tone === "danger" ? T.dangerBg : T.tile;
-  return h("div", { style: { display: "flex", gap: 12, padding: "14px 16px", borderRadius: 16, background: bg, fontSize: 14, lineHeight: 1.55 } },
+  return h("div", { style: { display: "flex", gap: 12, padding: "14px 16px", borderRadius: 16, background: bg, fontSize: 13, lineHeight: 1.55 } },
     h(Icon, { h, name: icon, size: 18, style: { marginTop: 2, color: tone === "warn" ? T.warn : tone === "danger" ? T.danger : T.subtle } }), h("div", { style: { flex: 1 } }, children));
 }
 function Badge({ h, children }) {
@@ -173,7 +173,7 @@ function Chip({ h, children, tone }) {
   return h("span", { style: { display: "inline-flex", alignItems: "center", gap: 6, height: 26, padding: "0 10px", borderRadius: 999, background: bg, color, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" } }, children);
 }
 const Dot = ({ h, color }) => h("span", { "aria-hidden": true, style: { width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block", flex: "0 0 8px" } });
-const Sub = ({ h, children, style }) => h("p", { style: { margin: 0, fontSize: 14, lineHeight: 1.55, color: T.subtle, ...style } }, children);
+const Sub = ({ h, children, style }) => h("p", { style: { margin: 0, fontSize: 13, lineHeight: 1.55, color: T.subtle, ...style } }, children);
 const Mono = ({ h, children, style }) => h("span", { style: { fontFamily: MONO, fontSize: 12, color: T.meta, ...style } }, children);
 function Paper({ h, art, alt, style }) {
   // Black-ink drawings on paper, so they read in dark mode too.
@@ -189,12 +189,12 @@ function Toggle({ h, ui, on, onChange, label }) {
 function Pills({ h, options, value, onChange, label }) {
   return h("div", { role: "group", "aria-label": label, style: { display: "flex", flexWrap: "wrap", gap: 8 } },
     options.map(([id, text]) => h("button", { key: id, type: "button", "aria-pressed": value === id, onClick: () => onChange(id),
-      style: { height: 36, padding: "0 16px", borderRadius: 999, font: "inherit", fontSize: 14, fontWeight: 600, cursor: "pointer", border: `1px solid ${value === id ? T.primary : T.prominent}`, background: value === id ? T.primary : "transparent", color: value === id ? T.onPrimary : T.text } }, text)));
+      style: { height: 36, padding: "0 16px", borderRadius: 999, font: "inherit", fontSize: 13, fontWeight: 600, cursor: "pointer", border: `1px solid ${value === id ? T.primary : T.prominent}`, background: value === id ? T.primary : "transparent", color: value === id ? T.onPrimary : T.text } }, text)));
 }
 function Segmented({ h, options, value, onChange, label }) {
   return h("div", { role: "group", "aria-label": label, style: { display: "inline-flex", padding: 4, borderRadius: 999, background: T.tile } },
     options.map(([id, text]) => h("button", { key: id, type: "button", "aria-pressed": value === id, onClick: () => onChange(id),
-      style: { height: 34, padding: "0 18px", borderRadius: 999, border: 0, font: "inherit", fontSize: 14, fontWeight: 600, cursor: "pointer", background: value === id ? T.primary : "transparent", color: value === id ? T.onPrimary : T.text } }, text)));
+      style: { height: 34, padding: "0 18px", borderRadius: 999, border: 0, font: "inherit", fontSize: 13, fontWeight: 600, cursor: "pointer", background: value === id ? T.primary : "transparent", color: value === id ? T.onPrimary : T.text } }, text)));
 }
 function Avatar({ h, name }) {
   const initials = String(name || "?").split(/\s+/).map((x) => x[0]).join("").slice(0, 2).toUpperCase();
@@ -209,7 +209,7 @@ function AgentMark({ h, pubkey, name, size = 22 }) {
 }
 function Field({ h, value, onChange, placeholder, label, style }) {
   return h("input", { value, placeholder, "aria-label": label, onChange: (e) => onChange(e.target.value),
-    style: { height: 40, padding: "0 16px", borderRadius: 999, border: `1px solid ${T.prominent}`, background: T.tile, color: T.text, font: "inherit", fontSize: 14, ...style } });
+    style: { height: 40, padding: "0 16px", borderRadius: 999, border: `1px solid ${T.prominent}`, background: T.tile, color: T.text, font: "inherit", fontSize: 13, ...style } });
 }
 function Meter({ h, value, of, label }) {
   const pct = of ? Math.min(100, Math.round((value / of) * 100)) : 0;
@@ -220,10 +220,10 @@ function MoreMenu({ h, React, ui, items, label }) {
   if (ui?.Menu) return h(ui.Menu, { "aria-label": label, align: "end", items: items.map((i) => ({ label: i.label, onSelect: i.onSelect, tone: i.danger ? "destructive" : undefined })) });
   const [open, setOpen] = React.useState(false);
   return h("span", { style: { position: "relative" } },
-    h("button", { type: "button", "aria-label": label, "aria-expanded": open, onClick: () => setOpen(!open), style: { width: 38, height: 38, borderRadius: 999, border: `1px solid ${T.prominent}`, background: "transparent", color: T.text, fontSize: 18, cursor: "pointer" } }, "⋯"),
+    h("button", { type: "button", "aria-label": label, "aria-expanded": open, onClick: () => setOpen(!open), style: { width: 38, height: 32, borderRadius: 999, border: `1px solid ${T.prominent}`, background: "transparent", color: T.text, fontSize: 16, cursor: "pointer" } }, "⋯"),
     open && h("div", { role: "menu", style: { position: "absolute", right: 0, bottom: 44, zIndex: 5, minWidth: 210, padding: 6, borderRadius: 16, background: T.tile, border: `1px solid ${T.border}`, boxShadow: "0 12px 32px rgba(0,0,0,.18)" } },
       items.map((i) => h("button", { key: i.label, type: "button", role: "menuitem", onClick: () => { setOpen(false); i.onSelect(); },
-        style: { display: "block", width: "100%", textAlign: "left", padding: "9px 12px", border: 0, borderRadius: 10, background: "transparent", font: "inherit", fontSize: 14, cursor: "pointer", color: i.danger ? T.danger : T.text } }, i.label))));
+        style: { display: "block", width: "100%", textAlign: "left", padding: "9px 12px", border: 0, borderRadius: 10, background: "transparent", font: "inherit", fontSize: 13, cursor: "pointer", color: i.danger ? T.danger : T.text } }, i.label))));
 }
 const Fragment = ({ children }) => children;
 
@@ -233,10 +233,10 @@ function Header({ h, rt, config, flash }) {
   return h("header", { style: { display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: 16, paddingBottom: 6 } },
     h("div", null,
       h("span", { style: { fontSize: 13, color: T.subtle } }, "Buzz plugin"),
-      h("h1", { style: { margin: "4px 0 10px", fontSize: "clamp(40px, 7vw, 60px)", lineHeight: 0.92, fontWeight: 800, letterSpacing: "-0.045em" } }, "Agent", h("span", { style: { display: "block", color: T.grey } }, "Access")),
+      h("h1", { style: { margin: "4px 0 10px", fontSize: "clamp(26px, 3.6vw, 34px)", lineHeight: 0.95, fontWeight: 800, letterSpacing: "-0.045em" } }, "Agent", h("span", { style: { display: "block", color: T.grey } }, "Access")),
       h("span", { style: { fontSize: 13, color: T.subtle } }, "Your agents run on this computer, while Buzz is open")),
     h("div", { style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } },
-      h("span", { role: "status", style: { display: "inline-flex", alignItems: "center", gap: 8, height: 38, padding: "0 14px", borderRadius: 999, background: config.paused ? T.dangerBg : T.card, fontSize: 13, fontWeight: 600, color: config.paused ? T.danger : T.text } },
+      h("span", { role: "status", style: { display: "inline-flex", alignItems: "center", gap: 8, height: 32, padding: "0 14px", borderRadius: 999, background: config.paused ? T.dangerBg : T.card, fontSize: 13, fontWeight: 600, color: config.paused ? T.danger : T.text } },
         h(Dot, { h, color: config.paused ? RED : T.online }), config.paused ? "Paused" : "Sharing"),
       h(Btn, { h, onClick: togglePause }, config.paused ? "Resume sharing" : "Pause all sharing")));
 }
@@ -255,7 +255,7 @@ function AwayBanner({ h, rt, state, go }) {
 function PausedBanner({ h, rt }) {
   return h(Card, { h, style: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 18, background: T.dangerBg } },
     h(Paper, { h, art: "MeditatingDoodle", style: { width: 120, height: 86 } }),
-    h("div", { style: { flex: "999 1 260px" } }, h("strong", { style: { fontSize: 17 } }, "Sharing is paused"), h(Sub, { h }, "Nobody else can use your agents. Mentions are held, not answered, and no credits are used.")),
+    h("div", { style: { flex: "999 1 260px" } }, h("strong", { style: { fontSize: 15 } }, "Sharing is paused"), h(Sub, { h }, "Nobody else can use your agents. Mentions are held, not answered, and no credits are used.")),
     h(Btn, { h, kind: "primary", onClick: () => rt.config.set((c) => ({ ...c, paused: false }), { now: true }) }, "Resume sharing"));
 }
 function Tabs({ h, tab, go, state }) {
@@ -264,7 +264,7 @@ function Tabs({ h, tab, go, state }) {
     TABS.map(([id, label]) => {
       const on = tab === id;
       return h("button", { key: id, type: "button", "aria-current": on ? "page" : undefined, onClick: () => go(id),
-        style: { display: "inline-flex", alignItems: "center", gap: 8, height: 38, padding: "0 16px", border: 0, borderRadius: 999, font: "inherit", fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", cursor: "pointer", background: on ? T.primary : "transparent", color: on ? T.onPrimary : T.text } },
+        style: { display: "inline-flex", alignItems: "center", gap: 8, height: 32, padding: "0 16px", border: 0, borderRadius: 999, font: "inherit", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", cursor: "pointer", background: on ? T.primary : "transparent", color: on ? T.onPrimary : T.text } },
         label,
         id === "people" && waiting ? h(Badge, { h }, waiting) : null,
         id === "activity" && state.activity.length ? h(Mono, { h, style: { color: "inherit", opacity: 0.75 } }, tag(Math.min(state.activity.length, 999))) : null);
@@ -282,9 +282,9 @@ function FirstRun({ h, go }) {
     h(Card, { h, style: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: "20px 36px", padding: "30px 28px" } },
       h("div", { style: { flex: "1 1 320px", display: "flex", flexDirection: "column", gap: 14 } },
         h(Mono, { h }, `${tag(1)} welcome`),
-        h("p", { style: { margin: 0, fontSize: 36, lineHeight: 1.05, fontWeight: 800, letterSpacing: "-0.035em" } }, "Let ", h("span", { style: { background: `linear-gradient(transparent 68%, ${YELLOW} 68%, ${YELLOW} 94%, transparent 94%)` } }, "your team"), h("span", { style: { display: "block", color: T.grey } }, "ask your agents.")),
-        h(Sub, { h, style: { fontSize: 15 } }, "Pick an agent, pick who can ask, set a few limits. Teammates @mention it in Buzz and it answers in a thread, here on your computer, as you."),
-        h("div", null, h(Btn, { h, kind: "sky", onClick: () => go("share"), style: { minHeight: 44, fontSize: 15 } }, "Share your first agent →"))),
+        h("p", { style: { margin: 0, fontSize: 26, lineHeight: 1.08, fontWeight: 800, letterSpacing: "-0.035em" } }, "Let ", h("span", { style: { background: `linear-gradient(transparent 68%, ${YELLOW} 68%, ${YELLOW} 94%, transparent 94%)` } }, "your team"), h("span", { style: { display: "block", color: T.grey } }, "ask your agents.")),
+        h(Sub, { h, style: { fontSize: 14 } }, "Pick an agent, pick who can ask, set a few limits. Teammates @mention it in Buzz and it answers in a thread, here on your computer, as you."),
+        h("div", null, h(Btn, { h, kind: "sky", onClick: () => go("share"), style: { minHeight: 36, fontSize: 14 } }, "Share your first agent →"))),
       h(Paper, { h, art: "UnboxingDoodle", alt: "Someone opening a box", style: { flex: "1 1 240px", maxWidth: 320, aspectRatio: "4 / 3" } })),
     h(Limitations, { h }));
 }
@@ -299,8 +299,8 @@ function Requests({ h, rt, state, flash, config, n }) {
     reqs.map((r) => h(Tile, { h, key: r.eventId, style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px 14px" } },
       h(Avatar, { h, name: r.fromName }),
       h("div", { style: { flex: "999 1 260px", minWidth: 0 } },
-        h("p", { style: { margin: 0, fontSize: 14 } }, h("strong", null, r.fromName), " asked ", h("strong", null, r.agentName), where[r.kind] || "", h("span", { style: { color: T.subtle } }, ` · ${rt.channelName(r.channel)} · `), h(Mono, { h }, timeLabel(r.at))),
-        h("p", { style: { margin: "3px 0 0", fontSize: 14, color: T.subtle, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, `“${r.text}”`)),
+        h("p", { style: { margin: 0, fontSize: 13 } }, h("strong", null, r.fromName), " asked ", h("strong", null, r.agentName), where[r.kind] || "", h("span", { style: { color: T.subtle } }, ` · ${rt.channelName(r.channel)} · `), h(Mono, { h }, timeLabel(r.at))),
+        h("p", { style: { margin: "3px 0 0", fontSize: 13, color: T.subtle, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, `“${r.text}”`)),
       h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } },
         r.kind === "access" || r.kind === "away"
           ? h(Btn, { h, kind: "sky", disabled: config.paused, onClick: async () => { await rt.approve(r.eventId, "week"); flash(`${r.fromName} can ask ${r.agentName} for 1 week. Answering now.`); } }, "Approve and answer")
@@ -323,7 +323,7 @@ function Overview(env) {
     h(Card, { h },
       h(Title, { h, sub: "all agents", n: 1 }, "Usage"),
       h("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px 28px" } },
-        h("span", { style: { fontSize: "clamp(56px, 10vw, 92px)", fontWeight: 400, letterSpacing: "-0.05em", lineHeight: 1, fontVariantNumeric: "tabular-nums" } }, answered, h("span", { style: { color: T.grey } }, `/${cap}`)),
+        h("span", { style: { fontSize: "clamp(40px, 6vw, 60px)", fontWeight: 400, letterSpacing: "-0.05em", lineHeight: 1, fontVariantNumeric: "tabular-nums" } }, answered, h("span", { style: { color: T.grey } }, `/${cap}`)),
         h("div", { style: { flex: "1 1 200px", fontSize: 13, lineHeight: 1.5 } }, h("span", { style: { color: T.subtle, display: "block" } }, `Requests answered ${period === "today" ? "today" : "this week"} · all agents`), h("strong", null, resetLabel)),
         h(Segmented, { h, label: "Period", value: period, onChange: setPeriod, options: [["today", "Today"], ["week", "Week"]] })),
       h(Meter, { h, value: answered, of: cap }),
@@ -349,7 +349,7 @@ function AgentFolder(env) {
   const reach = new Set(people.filter((p) => p.agents.includes(agent.pubkey)).map((p) => p.pubkey));
   for (const c of chans) for (const m of c.members || []) if (m !== agent.owner) reach.add(m);
   const kind = /codex/.test(agent.type || "") ? "Codex" : /goose/.test(agent.type || "") ? "Goose" : /\bpi\b|\/pi/.test(agent.type || "") ? "Pi" : "Claude";
-  const tabStyle = (on) => ({ display: "inline-flex", alignItems: "center", gap: 10, height: 50, padding: "0 20px 0 10px", border: 0, borderRadius: "16px 16px 0 0", font: "inherit", fontSize: 15, fontWeight: 700, cursor: "pointer", background: on ? AMBER : T.card, color: on ? INK : T.text });
+  const tabStyle = (on) => ({ display: "inline-flex", alignItems: "center", gap: 10, height: 42, padding: "0 16px 0 8px", border: 0, borderRadius: "16px 16px 0 0", font: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer", background: on ? AMBER : T.card, color: on ? INK : T.text });
   const tileIcon = (icon) => h("span", { "aria-hidden": true, style: { width: 34, height: 34, borderRadius: "50%", border: `1px solid ${T.prominent}`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: T.subtle } }, h(Icon, { h, name: icon }));
   return h("div", null,
     h("div", { role: "tablist", "aria-label": "Shared agents", style: { display: "flex", gap: 6, flexWrap: "wrap", paddingLeft: 12 } },
@@ -365,22 +365,22 @@ function AgentFolder(env) {
       h(Title, { h, sub: "shared with", n: 3, right: h("span", { style: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 } }, h(Toggle, { h, ui, on: !cfg.paused, label: `Share ${agent.name}`, onChange: (on) => rt.config.set((c) => ({ ...c, agents: { ...c.agents, [agent.pubkey]: { ...c.agents[agent.pubkey], paused: !on } } }), { now: true }) }), cfg.paused ? "Paused" : "Shared") }, agent.name),
       h("span", { style: { fontSize: 13, color: T.subtle, marginTop: -8 } }, `${kind} · ${plural(reach.size, "person", "people")} can use it`),
       h("div", { style: { display: "flex", alignItems: "baseline", gap: 12 } },
-        h("span", { style: { fontSize: 48, fontWeight: 400, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" } }, used, h("span", { style: { fontSize: 22, fontWeight: 600 } }, ` of ${config.limits.day}`)),
-        h("strong", { style: { fontSize: 14 } }, "requests today")),
+        h("span", { style: { fontSize: 36, fontWeight: 400, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" } }, used, h("span", { style: { fontSize: 18, fontWeight: 600 } }, ` of ${config.limits.day}`)),
+        h("strong", { style: { fontSize: 13 } }, "requests today")),
       h(Meter, { h, value: used, of: config.limits.day }),
       h("div", { style: { display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, fontSize: 13, marginTop: -6 } },
         h("strong", { style: { color: near ? T.warn : T.text } }, paused ? "Paused: mentions are held" : `${left} left today`), h("span", { style: { color: T.subtle } }, `${config.limits.hour} per person each hour`)),
       h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 12 } },
         chans.map((c) => h(Tile, { h, key: c.id, style: { minHeight: 110, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 14 } },
           tileIcon(c.visibility === "public" ? "globe" : "lock"),
-          h("div", null, h("span", { style: { fontSize: 12, color: T.subtle } }, `${c.visibility === "public" ? "Public" : "Private"}${c.members ? " · " + plural(c.members.length, "member") : ""}`), h("strong", { style: { display: "block", fontSize: 17, letterSpacing: "-0.01em" } }, "#" + c.name)))),
+          h("div", null, h("span", { style: { fontSize: 12, color: T.subtle } }, `${c.visibility === "public" ? "Public" : "Private"}${c.members ? " · " + plural(c.members.length, "member") : ""}`), h("strong", { style: { display: "block", fontSize: 15, letterSpacing: "-0.01em" } }, "#" + c.name)))),
         names.length ? h(Tile, { h, style: { minHeight: 110, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 14 } },
           tileIcon("users"),
-          h("div", null, h("span", { style: { fontSize: 12, color: T.subtle } }, "Approved people"), h("strong", { style: { display: "block", fontSize: 17, letterSpacing: "-0.01em" } }, names.slice(0, 3).join(", ") + (names.length > 3 ? ` +${names.length - 3}` : "")))) : null,
+          h("div", null, h("span", { style: { fontSize: 12, color: T.subtle } }, "Approved people"), h("strong", { style: { display: "block", fontSize: 15, letterSpacing: "-0.01em" } }, names.slice(0, 3).join(", ") + (names.length > 3 ? ` +${names.length - 3}` : "")))) : null,
         h("button", { type: "button", onClick: () => rt.state.set((s) => ({ ...s, tab: "share", prefillAgent: agent.pubkey })),
           style: { minHeight: 110, borderRadius: 16, border: `1.5px dashed ${T.prominent}`, background: "transparent", font: "inherit", color: T.text, cursor: "pointer", textAlign: "left", padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "space-between" } },
           tileIcon("plus"),
-          h("span", null, h("span", { style: { fontSize: 12, color: T.subtle, display: "block" } }, "Channel or person"), h("strong", { style: { fontSize: 17 } }, "Add")))),
+          h("span", null, h("span", { style: { fontSize: 12, color: T.subtle, display: "block" } }, "Channel or person"), h("strong", { style: { fontSize: 15 } }, "Add")))),
       h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" } },
         h(Btn, { h, onClick: async () => flash((await rt.copy(core.howTo(agent.name, config.limits))) ? "How-to copied. Paste it in your channel." : "Couldn't copy") }, h(Icon, { h, name: "copy" }), "Copy how-to"),
         h(MoreMenu, { h, React, ui, label: `More actions for ${agent.name}`, items: [
@@ -434,7 +434,7 @@ function Share(env) {
   if (done)
     return h(Card, { h, style: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: "16px 28px" } },
       h(Paper, { h, art: "SelfieDoodle", style: { width: 150, height: 120 } }),
-      h("div", { style: { flex: "999 1 260px", display: "flex", flexDirection: "column", gap: 6 } }, h("p", { style: { margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: "-0.03em" } }, `${pickedAgent.name} is shared.`, h("span", { style: { display: "block", color: T.grey } }, "Tell your team.")), h(Sub, { h }, "Post a short how-to so people know they can ask it.")),
+      h("div", { style: { flex: "999 1 260px", display: "flex", flexDirection: "column", gap: 6 } }, h("p", { style: { margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: "-0.03em" } }, `${pickedAgent.name} is shared.`, h("span", { style: { display: "block", color: T.grey } }, "Tell your team.")), h(Sub, { h }, "Post a short how-to so people know they can ask it.")),
       h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
         h(Btn, { h, kind: "sky", onClick: async () => flash((await rt.copy(core.howTo(pickedAgent.name, config.limits))) ? "How-to copied" : "Couldn't copy") }, h(Icon, { h, name: "copy" }), "Copy how-to"),
         h(Btn, { h, onClick: () => go("overview") }, "Back to overview")));
@@ -445,7 +445,7 @@ function Share(env) {
     h("ol", { "aria-label": "Steps", style: { listStyle: "none", margin: 0, padding: 0, display: "flex", flexWrap: "wrap", gap: 8 } },
       ["Agent", "Who can ask", "Limits", "Review"].map((l, i) => {
         const n = i + 1, on = step === n, past = step > n;
-        return h("li", { key: l, "aria-current": on ? "step" : undefined, style: { display: "inline-flex", alignItems: "center", gap: 8, height: 36, padding: "0 14px 0 5px", borderRadius: 999, fontSize: 14, fontWeight: 700, background: on ? T.primary : T.tile, color: on ? T.onPrimary : T.text } },
+        return h("li", { key: l, "aria-current": on ? "step" : undefined, style: { display: "inline-flex", alignItems: "center", gap: 8, height: 36, padding: "0 14px 0 5px", borderRadius: 999, fontSize: 13, fontWeight: 700, background: on ? T.primary : T.tile, color: on ? T.onPrimary : T.text } },
           h("span", { style: { width: 26, height: 26, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", background: on ? SKY : past ? T.okBg : T.card, color: on ? ON_ACCENT : T.text, fontFamily: MONO, fontSize: 11 } }, past ? h(Icon, { h, name: "check", size: 13 }) : String(n).padStart(2, "0")), l);
       })),
     step === 1 && h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12 } },
@@ -455,7 +455,7 @@ function Share(env) {
           style: { display: "flex", flexDirection: "column", gap: 10, padding: 16, textAlign: "left", borderRadius: 16, font: "inherit", color: T.text, cursor: a.support.ok ? "pointer" : "not-allowed", background: a.support.ok ? T.tile : "transparent", border: on ? `2px solid ${T.focus}` : `1px ${a.support.ok ? "solid" : "dashed"} ${T.prominent}` } },
           h("span", { style: { display: "flex", alignItems: "center", gap: 10 } },
             h(AgentMark, { h, pubkey: a.pubkey, name: a.name, size: 36 }),
-            h("strong", { style: { fontSize: 16 } }, a.name), on ? h("span", { style: { marginLeft: "auto", width: 24, height: 24, borderRadius: "50%", background: SKY, color: ON_ACCENT, border: `1.5px solid ${SKY}`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800 } }, h(Icon, { h, name: "check", size: 14 })) : null),
+            h("strong", { style: { fontSize: 14 } }, a.name), on ? h("span", { style: { marginLeft: "auto", width: 24, height: 24, borderRadius: "50%", background: SKY, color: ON_ACCENT, border: `1.5px solid ${SKY}`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800 } }, h(Icon, { h, name: "check", size: 14 })) : null),
           h("span", { style: { fontSize: 13, lineHeight: 1.45, color: a.support.ok ? T.subtle : T.danger } }, a.support.ok ? (config.agents[a.pubkey] ? "Already shared. Change who can ask." : "Ready to share") : a.support.reason));
       }) : h(Sub, { h }, "You have no agents in this community yet. Create one in Agents first.")),
     step === 2 && h(Fragment, null,
@@ -465,14 +465,14 @@ function Share(env) {
           const reason = core.askReason(all, c);
           return h("label", { key: c.id, style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 12px", padding: "11px 16px", borderTop: `1px solid ${T.border}`, cursor: "pointer" } },
             h("input", { type: "checkbox", checked: chosen.has(c.id), onChange: () => { const next = new Set(chosen); next.has(c.id) ? next.delete(c.id) : next.add(c.id); setChosen(next); setConfirmed(false); }, style: { width: 18, height: 18, accentColor: INK } }),
-            h("strong", { style: { fontSize: 14 } }, "#" + c.name),
+            h("strong", { style: { fontSize: 13 } }, "#" + c.name),
             h("span", { style: { fontSize: 13, color: T.subtle } }, `${c.members ? plural(c.members.length, "member") : "Members unknown"} · ${c.visibility === "public" ? "Public" : c.visibility === "private" ? "Private" : "Visibility unknown"}`),
             reason === "public" ? h(Chip, { h, tone: "danger" }, "Public · anyone can join") : reason === "big" ? h(Chip, { h, tone: "warn" }, `Over ${core.BIG_CHANNEL} people`) : reason === "unknown" ? h(Chip, { h, tone: "warn" }, "Can't check members") : null);
         }) : h("div", { style: { padding: "12px 16px" } }, h(Sub, { h }, "Loading your channels…"))),
       risky.length > 0 && h("div", { role: "alert", style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px 14px", padding: "14px 16px", borderRadius: 16, background: T.dangerBg } },
         h(Icon, { h, name: "triangle-alert", size: 18, style: { color: T.danger } }),
-        h("p", { style: { margin: 0, flex: "999 1 280px", fontSize: 14, lineHeight: 1.5 } }, h("strong", null, risky.map((c) => "#" + c.name).join(", ")), " could let many people, or people you don't know, use your account and credits. ", pickedAgent?.name, " will ask you before answering there."),
-        h("label", { style: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700 } }, h("input", { type: "checkbox", checked: confirmed, onChange: () => setConfirmed(!confirmed), style: { width: 18, height: 18 } }), "I understand")),
+        h("p", { style: { margin: 0, flex: "999 1 280px", fontSize: 13, lineHeight: 1.5 } }, h("strong", null, risky.map((c) => "#" + c.name).join(", ")), " could let many people, or people you don't know, use your account and credits. ", pickedAgent?.name, " will ask you before answering there."),
+        h("label", { style: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700 } }, h("input", { type: "checkbox", checked: confirmed, onChange: () => setConfirmed(!confirmed), style: { width: 18, height: 18 } }), "I understand")),
       h(Tile, { h, style: { display: "flex", flexDirection: "column", gap: 10 } },
         h("strong", null, "People, one by one"), h(Sub, { h }, "For someone who isn't in those channels. Their access ends on its own."),
         added.length ? h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, added.map((p) => h(Chip, { h, key: p.pubkey }, `${p.name} · ${durLabel(p.dur)}`, h("button", { type: "button", "aria-label": `Remove ${p.name}`, onClick: () => setAdded(added.filter((x) => x.pubkey !== p.pubkey)), style: { border: 0, background: "none", cursor: "pointer", color: T.subtle, display: "inline-flex", padding: 2 } }, h(Icon, { h, name: "x", size: 14 }))))) : null,
@@ -480,16 +480,16 @@ function Share(env) {
           h(Field, { h, value: query, onChange: setQuery, label: "Search people", placeholder: "Search by name, or paste an npub", style: { flex: "1 1 240px", background: T.card } }),
           h(Pills, { h, label: "How long", value: dur, onChange: setDur, options: core.DURATIONS.map((d) => [d.id, d.label]) })),
         matches.length ? h("div", { style: { display: "flex", flexDirection: "column", gap: 2 } }, matches.map((m) => h("button", { key: m.pubkey, type: "button", onClick: () => { setAdded([...added, { ...m, dur }]); setQuery(""); },
-          style: { display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "6px 10px", border: 0, borderRadius: 12, background: T.card, font: "inherit", fontSize: 14, color: T.text, cursor: "pointer", textAlign: "left" } },
+          style: { display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "6px 10px", border: 0, borderRadius: 12, background: T.card, font: "inherit", fontSize: 13, color: T.text, cursor: "pointer", textAlign: "left" } },
           h(Avatar, { h, name: m.name }), m.name, h("span", { style: { marginLeft: "auto", color: T.subtle, fontSize: 13 } }, `Add for ${durLabel(dur).toLowerCase()}`)))) : null)),
     step === 3 && h(LimitFields, env),
     step === 4 && h(Tile, { h, style: { display: "flex", flexDirection: "column", gap: 12, padding: 20 } },
-      h("p", { style: { margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: 10 } }, h(AgentMark, { h, pubkey: picked, name: pickedAgent?.name, size: 28 }), pickedAgent?.name),
-      h("p", { style: { margin: 0, fontSize: 15 } }, h("strong", null, "Who: "), [...[...chosen].map((id) => "#" + (channels.find((c) => c.id === id)?.name || "channel")), ...added.map((p) => `${p.name} (${durLabel(p.dur)})`)].join(", ") || "Nobody yet"),
-      h("p", { style: { margin: 0, fontSize: 15 } }, h("strong", null, "Limits: "), `${config.limits.hour} an hour per person · ${config.limits.day} a day for this agent · ${config.limits.total} a day in total`),
-      h("p", { style: { margin: 0, fontSize: 15 } }, h("strong", null, "Asks you first: "), [config.ask.public && "public channels", config.ask.big && `channels over ${core.BIG_CHANNEL} people`, config.ask.unknown && "channels it can't check"].filter(Boolean).join(", ") || "never"),
+      h("p", { style: { margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: 10 } }, h(AgentMark, { h, pubkey: picked, name: pickedAgent?.name, size: 28 }), pickedAgent?.name),
+      h("p", { style: { margin: 0, fontSize: 14 } }, h("strong", null, "Who: "), [...[...chosen].map((id) => "#" + (channels.find((c) => c.id === id)?.name || "channel")), ...added.map((p) => `${p.name} (${durLabel(p.dur)})`)].join(", ") || "Nobody yet"),
+      h("p", { style: { margin: 0, fontSize: 14 } }, h("strong", null, "Limits: "), `${config.limits.hour} an hour per person · ${config.limits.day} a day for this agent · ${config.limits.total} a day in total`),
+      h("p", { style: { margin: 0, fontSize: 14 } }, h("strong", null, "Asks you first: "), [config.ask.public && "public channels", config.ask.big && `channels over ${core.BIG_CHANNEL} people`, config.ask.unknown && "channels it can't check"].filter(Boolean).join(", ") || "never"),
       h("div", { style: { display: "flex", alignItems: "baseline", gap: 10, paddingTop: 12, borderTop: `1px solid ${T.border}` } },
-        h("span", { style: { fontSize: 40, fontWeight: 400, letterSpacing: "-0.04em", lineHeight: 1 } }, reach.size), h("strong", null, `${reach.size === 1 ? "person" : "people"} will be able to ask ${pickedAgent?.name}`))),
+        h("span", { style: { fontSize: 30, fontWeight: 400, letterSpacing: "-0.04em", lineHeight: 1 } }, reach.size), h("strong", null, `${reach.size === 1 ? "person" : "people"} will be able to ask ${pickedAgent?.name}`))),
     h("div", { style: { display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 10, paddingTop: 14, borderTop: `1px solid ${T.border}` } },
       h(Btn, { h, onClick: () => (step > 1 ? setStep(step - 1) : go("overview")) }, step > 1 ? "← Back" : "Cancel"),
       h(Btn, { h, kind: step < 4 ? "primary" : "sky", disabled: !canNext, onClick: () => (step < 4 ? setStep(step + 1) : finish()) }, step < 4 ? "Next →" : "Start sharing")));
@@ -498,16 +498,16 @@ function Share(env) {
 function LimitFields({ h, rt, config }) {
   const defs = [["hour", "Per person, each hour", [5, 10, 20]], ["day", "Per agent, each day", [25, 50, 100]], ["total", "All agents together, each day", [50, 100, 200]]];
   const set = (k, v) => rt.config.set((c) => ({ ...c, limits: { ...c.limits, [k]: Math.max(1, v) } }), { now: true });
-  const pill = (on) => ({ minWidth: 52, height: 40, padding: "0 14px", borderRadius: 999, font: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer", border: `1px solid ${on ? T.primary : T.prominent}`, background: on ? T.primary : "transparent", color: on ? T.onPrimary : T.text });
+  const pill = (on) => ({ minWidth: 52, height: 40, padding: "0 14px", borderRadius: 999, font: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer", border: `1px solid ${on ? T.primary : T.prominent}`, background: on ? T.primary : "transparent", color: on ? T.onPrimary : T.text });
   return h("div", { style: { display: "flex", flexDirection: "column", gap: 16 } },
     defs.map(([k, label, presets]) => h("div", { key: k, style: { display: "flex", flexDirection: "column", gap: 8 } },
       h("span", { style: { fontSize: 13, color: T.subtle } }, label),
       h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" } },
         presets.map((v) => h("button", { key: v, type: "button", "aria-pressed": config.limits[k] === v, onClick: () => set(k, v), style: pill(config.limits[k] === v) }, v)),
         h("span", { style: { display: "inline-flex", alignItems: "center", gap: 4, height: 40, padding: "0 6px", borderRadius: 999, border: `1px solid ${presets.includes(config.limits[k]) ? T.prominent : T.primary}` } },
-          h("button", { type: "button", "aria-label": `Lower ${label}`, onClick: () => set(k, config.limits[k] - 1), style: { width: 28, height: 28, borderRadius: "50%", border: 0, background: "transparent", color: T.text, cursor: "pointer", fontSize: 16 } }, "−"),
+          h("button", { type: "button", "aria-label": `Lower ${label}`, onClick: () => set(k, config.limits[k] - 1), style: { width: 28, height: 28, borderRadius: "50%", border: 0, background: "transparent", color: T.text, cursor: "pointer", fontSize: 14 } }, "−"),
           h("span", { "aria-live": "polite", style: { minWidth: 34, textAlign: "center", fontWeight: 700, fontVariantNumeric: "tabular-nums" } }, config.limits[k]),
-          h("button", { type: "button", "aria-label": `Raise ${label}`, onClick: () => set(k, config.limits[k] + 1), style: { width: 28, height: 28, borderRadius: "50%", border: 0, background: "transparent", color: T.text, cursor: "pointer", fontSize: 16 } }, "+"))))),
+          h("button", { type: "button", "aria-label": `Raise ${label}`, onClick: () => set(k, config.limits[k] + 1), style: { width: 28, height: 28, borderRadius: "50%", border: 0, background: "transparent", color: T.text, cursor: "pointer", fontSize: 14 } }, "+"))))),
     h(Sub, { h, style: { fontSize: 13 } }, "Your own messages never count. Shared agents are told not to share secrets, delete files or push code for other people."));
 }
 
@@ -551,9 +551,9 @@ function People(env) {
       h(Title, { h, sub: "for a while, or until you stop", n: 1, right: h(Btn, { h, label: "Close", onClick: () => setAdding(false), style: { width: 38, padding: 0 } }, h(Icon, { h, name: "x" })) }, "Add a person"),
       h(Field, { h, value: addQuery, onChange: setAddQuery, label: "Search by name", placeholder: "Search by name, or paste an npub" }),
       h(Pills, { h, label: "Person", value: pick?.pubkey, onChange: (pk) => setPick(options.find((o) => o.pubkey === pk)), options: options.map((o) => [o.pubkey, o.name]) }),
-      h("div", { style: { display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center" } }, h("strong", { style: { fontSize: 14 } }, "Agents"),
-        shared.map((a) => h("label", { key: a.pubkey, style: { display: "inline-flex", gap: 6, fontSize: 14, alignItems: "center" } }, h("input", { type: "checkbox", checked: agents.has(a.pubkey), onChange: () => { const n = new Set(agents); n.has(a.pubkey) ? n.delete(a.pubkey) : n.add(a.pubkey); setAgents(n); }, style: { accentColor: INK } }), h(AgentMark, { h, pubkey: a.pubkey, name: a.name, size: 20 }), a.name))),
-      h("div", { style: { display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" } }, h("strong", { style: { fontSize: 14 } }, "For"), h(Pills, { h, label: "How long", value: dur, onChange: setDur, options: core.DURATIONS.map((d) => [d.id, d.label]) })),
+      h("div", { style: { display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center" } }, h("strong", { style: { fontSize: 13 } }, "Agents"),
+        shared.map((a) => h("label", { key: a.pubkey, style: { display: "inline-flex", gap: 6, fontSize: 13, alignItems: "center" } }, h("input", { type: "checkbox", checked: agents.has(a.pubkey), onChange: () => { const n = new Set(agents); n.has(a.pubkey) ? n.delete(a.pubkey) : n.add(a.pubkey); setAgents(n); }, style: { accentColor: INK } }), h(AgentMark, { h, pubkey: a.pubkey, name: a.name, size: 20 }), a.name))),
+      h("div", { style: { display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" } }, h("strong", { style: { fontSize: 13 } }, "For"), h(Pills, { h, label: "How long", value: dur, onChange: setDur, options: core.DURATIONS.map((d) => [d.id, d.label]) })),
       h("div", null, h(Btn, { h, kind: "sky", disabled: !pick || !agents.size, onClick: give }, pick ? `Give ${pick.name} access` : "Pick someone first"))),
     h(Requests, { ...env, n: 2 }),
     h(Card, { h },
@@ -564,7 +564,7 @@ function People(env) {
           h("span", { style: { display: "flex", alignItems: "center", gap: 10, flex: "1 1 180px", minWidth: 0 } }, h(Avatar, { h, name: r.name }), h("strong", null, r.name)),
           h("span", { style: { flex: "1 1 160px" } }, h(Chip, { h }, r.how)),
           h("span", { style: { flex: "0 0 auto", display: "inline-flex", gap: 4 } }, r.agents.map((k) => h("span", { key: k, title: agentName(k) }, h(AgentMark, { h, pubkey: k, name: agentName(k), size: 22 })))),
-          h("span", { style: { flex: "0 0 140px", fontSize: 14, color: r.ends === "Today" || r.ends === "Tomorrow" ? T.danger : T.text, fontWeight: r.ends === "Today" || r.ends === "Tomorrow" ? 700 : 400 } }, r.ends),
+          h("span", { style: { flex: "0 0 140px", fontSize: 13, color: r.ends === "Today" || r.ends === "Tomorrow" ? T.danger : T.text, fontWeight: r.ends === "Today" || r.ends === "Tomorrow" ? 700 : 400 } }, r.ends),
           r.manual ? h(Btn, { h, onClick: () => { rt.removePerson(r.pubkey); flash(`${r.name} no longer has access`); }, style: { minHeight: 32 } }, "Remove") : h(Mono, { h }, "ends when they leave")))
           : h("div", { style: { padding: 18, textAlign: "center" } }, h(Sub, { h }, query ? `Nobody matches “${query}”.` : "Nobody can ask yet. Share an agent with a channel, or add someone.")))));
 }
@@ -583,7 +583,7 @@ function Activity({ h, React, rt, state, agentName }) {
       rows.length ? rows.map((a, i) => {
         const [label] = RESULTS[a.result] || RESULTS.drop;
         const who = a.whoName || rt.nameOf(a.who);
-        return h(Tile, { h, key: a.at + ":" + i, style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px 14px", padding: "10px 14px", fontSize: 14 } },
+        return h(Tile, { h, key: a.at + ":" + i, style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px 14px", padding: "10px 14px", fontSize: 13 } },
           h(Mono, { h, style: { flex: "0 0 72px" } }, timeLabel(a.at)),
           h(Dot, { h, color: dotFor[a.result] || "#8F8A7C" }),
           h("span", { style: { flex: "1 1 300px" } }, `${label}: `, h("strong", null, who), ` → ${agentName(a.agent)} in ${rt.channelName(a.channel)}`),
@@ -597,7 +597,7 @@ function Limits(env) {
   const { h, rt, config, ui } = env;
   const setGroup = (group, k, v) => rt.config.set((c) => ({ ...c, [group]: { ...c[group], [k]: v } }), { now: true });
   const rows = (group, defs) => defs.map(([k, label, help]) => h(Tile, { h, key: k, style: { display: "flex", alignItems: "center", gap: 14 } },
-    h("div", { style: { flex: 1 } }, h("p", { style: { margin: 0, fontSize: 15, fontWeight: 700 } }, label), h(Sub, { h, style: { marginTop: 2, fontSize: 13 } }, help)),
+    h("div", { style: { flex: 1 } }, h("p", { style: { margin: 0, fontSize: 14, fontWeight: 700 } }, label), h(Sub, { h, style: { marginTop: 2, fontSize: 13 } }, help)),
     h(Toggle, { h, ui, on: config[group][k], onChange: (v) => setGroup(group, k, v), label })));
   return h(Fragment, null,
     h(Card, { h }, h(Title, { h, sub: "per person and per agent", n: 1 }, "Limits"), h(LimitFields, env),
@@ -629,8 +629,8 @@ function Settings({ h, React, rt, flash }) {
     h(Card, { h },
       h(Title, { h, sub: "can be shared", n: 2 }, "Which agents"),
       h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 } },
-        h(Tile, { h, style: { background: T.okBg, color: T.ok } }, h("strong", { style: { display: "inline-flex", alignItems: "center", gap: 6 } }, h(Icon, { h, name: "check" }), "Supported"), h("p", { style: { margin: "4px 0 0", fontSize: 14 } }, "Claude, Codex, Goose and Pi agents running on this computer")),
-        h(Tile, { h }, h("strong", { style: { display: "inline-flex", alignItems: "center", gap: 6 } }, h(Icon, { h, name: "x" }), "Not supported"), h("p", { style: { margin: "4px 0 0", fontSize: 14, color: T.subtle } }, "Shared compute and Builderlab agents. They run somewhere else, so this plugin can't reach them.")))),
+        h(Tile, { h, style: { background: T.okBg, color: T.ok } }, h("strong", { style: { display: "inline-flex", alignItems: "center", gap: 6 } }, h(Icon, { h, name: "check" }), "Supported"), h("p", { style: { margin: "4px 0 0", fontSize: 13 } }, "Claude, Codex, Goose and Pi agents running on this computer")),
+        h(Tile, { h }, h("strong", { style: { display: "inline-flex", alignItems: "center", gap: 6 } }, h(Icon, { h, name: "x" }), "Not supported"), h("p", { style: { margin: "4px 0 0", fontSize: 13, color: T.subtle } }, "Shared compute and Builderlab agents. They run somewhere else, so this plugin can't reach them.")))),
     h(Card, { h, style: { flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" } },
       h("div", { style: { flex: "999 1 240px" } }, h(Title, { h, sub: "metadata only, 30 days", n: 3 }, "Your data")),
       h(Btn, { h, onClick: exportCsv }, "Copy activity as CSV"),

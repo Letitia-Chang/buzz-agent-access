@@ -389,7 +389,9 @@ export function apply(ctx) {
   ctx.pages.register({
     id: "main",
     title: "Agent Access",
-    primary: true, // shows the page in Buzz's left dock
+    primary: true,
+    placement: "dock", // an app in Buzz's left dock, not a row in the Messages sidebar
+    layout: "workspace", // use the full width of the main area
     icon: iconDataUrl("users-round"),
     component: function AgentAccessPage() {
       return React.createElement(App, { React, ctx, rt });
