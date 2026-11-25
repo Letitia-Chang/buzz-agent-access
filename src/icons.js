@@ -15,6 +15,7 @@ const ICONS = {
   "share-2":"<circle cx=\"18\" cy=\"5\" r=\"3\" /><circle cx=\"6\" cy=\"12\" r=\"3\" /><circle cx=\"18\" cy=\"19\" r=\"3\" /><line x1=\"8.59\" x2=\"15.42\" y1=\"13.51\" y2=\"17.49\" /><line x1=\"15.41\" x2=\"8.59\" y1=\"6.51\" y2=\"10.49\" />",
   "plus":"<path d=\"M5 12h14\" /><path d=\"M12 5v14\" />",
   "user-plus":"<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\" /><circle cx=\"9\" cy=\"7\" r=\"4\" /><line x1=\"19\" x2=\"19\" y1=\"8\" y2=\"14\" /><line x1=\"22\" x2=\"16\" y1=\"11\" y2=\"11\" />",
+  "bot":"<path d=\"M12 8V4H8\" /><rect width=\"16\" height=\"12\" x=\"4\" y=\"8\" rx=\"2\" /><path d=\"M2 14h2\" /><path d=\"M20 14h2\" /><path d=\"M15 13v2\" /><path d=\"M9 13v2\" />",
 };
 /** A single-colour line icon that takes the colour of the text around it. */
 function svgIcon(createElement, name, { size = 16, strokeWidth = 1.75, style } = {}) {
@@ -25,3 +26,6 @@ function svgIcon(createElement, name, { size = 16, strokeWidth = 1.75, style } =
     dangerouslySetInnerHTML: { __html: ICONS[name] || "" },
   });
 }
+/** A data URL for Buzz's navigation. Buzz tints currentColor SVGs to match its theme. */
+const iconDataUrl = (name) =>
+  "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`);
