@@ -132,6 +132,9 @@ npm test           # 21 tests: rules, limits, requests, delivery, channel menu
 
 ## Changelog
 
+- **v4.2:** new "Ink & clay" colours, shared with Team Hub: navy for important
+  buttons, with sage, ochre and clay for status. No more bright blue, yellow or red.
+
 - **v4.1:** renamed everywhere to Agent Access (plugin ID `letitia.agent-access`,
   repository `agent-access`), with older settings carried over. The page is redesigned
   in design A: beige cards, a big usage number, and folder tabs for each shared agent.

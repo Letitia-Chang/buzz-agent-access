@@ -1,27 +1,31 @@
 // ---------- Agent Access page: design A ----------
 // A beige page with rounded cream cards, two-tone titles and mono {001} tags.
 // Colours live in CSS variables on the page root, with a light (beige) and a dark
-// (espresso) set that follow Buzz's theme. Sky, amber and red are used sparingly.
+// (espresso) set that follow Buzz's theme. Accents use the "Ink & clay" palette:
+// navy ink, sage teal, ochre and clay, all low-saturation so the plugins match.
 
-const SKY = "#8ED6F0";
-const INK = "#1B1B1A";
-const RED = "#C8362E";
-const YELLOW = "#FFD84D";
-const AMBER = "#E8A33D";
+const SKY = "var(--aa-accent)"; // navy: important buttons and selected states
+const INK = "#1E2533";
+const RED = "var(--aa-clay)";
+const YELLOW = "var(--aa-highlight)";
+const AMBER = "var(--aa-ochre)";
+const ON_ACCENT = "var(--aa-on-accent)";
 const PALETTES = {
   light: {
     "--aa-page": "#D8D4C3", "--aa-card": "#E6E3D8", "--aa-tile": "#F4F2EA", "--aa-chip": "#D8D4C3",
-    "--aa-ink": "#1B1B1A", "--aa-grey": "#7A7869", "--aa-muted": "#57544A", "--aa-meta": "#5F5C51",
-    "--aa-line": "rgba(27,27,26,.12)", "--aa-line-strong": "rgba(27,27,26,.32)", "--aa-primary": "#1B1B1A", "--aa-on-primary": "#F4F2EA",
-    "--aa-ok": "#276B43", "--aa-ok-bg": "#D6E4D0", "--aa-warn": "#7A5200", "--aa-warn-bg": "#F2DFAA",
-    "--aa-danger": "#A92C25", "--aa-danger-bg": "#F0D3CB", "--aa-online": "#2F7D4F", "--aa-focus": "#1B1B1A",
+    "--aa-ink": "#1E2533", "--aa-grey": "#7A7869", "--aa-muted": "#55534C", "--aa-meta": "#5E5B52",
+    "--aa-line": "rgba(30,37,51,.12)", "--aa-line-strong": "rgba(30,37,51,.32)", "--aa-primary": "#1E2533", "--aa-on-primary": "#F4F2EA",
+    "--aa-accent": "#24324A", "--aa-on-accent": "#F4F2EA", "--aa-ochre": "#B89B5E", "--aa-clay": "#9A5641", "--aa-on-clay": "#FFFFFF", "--aa-highlight": "#E3D3AE",
+    "--aa-ok": "#355E5F", "--aa-ok-bg": "#D5E0DC", "--aa-warn": "#6E5424", "--aa-warn-bg": "#EBE0C6",
+    "--aa-danger": "#8E4733", "--aa-danger-bg": "#F0DAD0", "--aa-online": "#5F8A8B", "--aa-focus": "#24324A",
   },
   dark: {
     "--aa-page": "#171613", "--aa-card": "#22211D", "--aa-tile": "#2C2A25", "--aa-chip": "#3A3833",
     "--aa-ink": "#F2EFE6", "--aa-grey": "#9B9787", "--aa-muted": "#C2BEAF", "--aa-meta": "#A9A595",
     "--aa-line": "rgba(242,239,230,.12)", "--aa-line-strong": "rgba(242,239,230,.3)", "--aa-primary": "#F2EFE6", "--aa-on-primary": "#1B1B1A",
-    "--aa-ok": "#7BC596", "--aa-ok-bg": "#22382A", "--aa-warn": "#F0C870", "--aa-warn-bg": "#3A3020",
-    "--aa-danger": "#F08A80", "--aa-danger-bg": "#3D2220", "--aa-online": "#5BC27F", "--aa-focus": "#F2EFE6",
+    "--aa-accent": "#A9B9D3", "--aa-on-accent": "#1A2233", "--aa-ochre": "#C7AD74", "--aa-clay": "#C77A62", "--aa-on-clay": "#1F1512", "--aa-highlight": "#5A4A2C",
+    "--aa-ok": "#8DB8B9", "--aa-ok-bg": "#22382F", "--aa-warn": "#D9C08A", "--aa-warn-bg": "#3A3020",
+    "--aa-danger": "#E09A84", "--aa-danger-bg": "#3D2420", "--aa-online": "#7FA9AA", "--aa-focus": "#A9B9D3",
   },
 };
 const T = {
@@ -134,7 +138,7 @@ const btnBase = { minHeight: 38, padding: "0 16px", borderRadius: 999, font: "in
 const BTN = {
   primary: { ...btnBase, border: `1px solid ${T.primary}`, background: T.primary, color: T.onPrimary },
   quiet: { ...btnBase, border: `1px solid ${T.prominent}`, background: "transparent", color: T.text },
-  sky: { ...btnBase, border: `1.5px solid ${INK}`, background: SKY, color: INK },
+  sky: { ...btnBase, border: `1px solid ${SKY}`, background: SKY, color: ON_ACCENT },
   danger: { ...btnBase, border: `1px solid ${T.danger}`, background: "transparent", color: T.danger },
 };
 function Btn({ h, kind = "quiet", onClick, disabled, children, label, style }) {
@@ -160,7 +164,7 @@ function Callout({ h, icon, tone, children }) {
     h("span", { "aria-hidden": true, style: { fontSize: 18 } }, icon), h("div", { style: { flex: 1 } }, children));
 }
 function Badge({ h, children }) {
-  return h("span", { style: { minWidth: 22, height: 22, padding: "0 7px", borderRadius: 999, background: RED, color: "#fff", fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center" } }, children);
+  return h("span", { style: { minWidth: 22, height: 22, padding: "0 7px", borderRadius: 999, background: RED, color: "var(--aa-on-clay)", fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center" } }, children);
 }
 function Chip({ h, children, tone }) {
   const [bg, color] = toneColor(tone);
@@ -177,8 +181,8 @@ function Paper({ h, art, alt, style }) {
 function Toggle({ h, ui, on, onChange, label }) {
   if (ui?.Switch) return h(ui.Switch, { checked: on, onCheckedChange: onChange, "aria-label": label });
   return h("button", { type: "button", role: "switch", "aria-checked": on, "aria-label": label, onClick: () => onChange(!on),
-    style: { position: "relative", width: 42, height: 24, flex: "0 0 42px", borderRadius: 999, border: 0, cursor: "pointer", background: on ? T.primary : "#8F8A7C" } },
-    h("span", { style: { position: "absolute", top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: on ? SKY : "#F4F2EA", transition: "left .15s" } }));
+    style: { position: "relative", width: 42, height: 24, flex: "0 0 42px", borderRadius: 999, border: 0, cursor: "pointer", background: on ? SKY : "#8F8A7C" } },
+    h("span", { style: { position: "absolute", top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: "50%", background: "#F4F2EA", transition: "left .15s" } }));
 }
 function Pills({ h, options, value, onChange, label }) {
   return h("div", { role: "group", "aria-label": label, style: { display: "flex", flexWrap: "wrap", gap: 8 } },
@@ -433,7 +437,7 @@ function Share(env) {
       ["Agent", "Who can ask", "Limits", "Review"].map((l, i) => {
         const n = i + 1, on = step === n, past = step > n;
         return h("li", { key: l, "aria-current": on ? "step" : undefined, style: { display: "inline-flex", alignItems: "center", gap: 8, height: 36, padding: "0 14px 0 5px", borderRadius: 999, fontSize: 14, fontWeight: 700, background: on ? T.primary : T.tile, color: on ? T.onPrimary : T.text } },
-          h("span", { style: { width: 26, height: 26, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", background: on ? SKY : past ? T.okBg : T.card, color: on ? INK : T.text, fontFamily: MONO, fontSize: 11 } }, past ? "✓" : String(n).padStart(2, "0")), l);
+          h("span", { style: { width: 26, height: 26, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", background: on ? SKY : past ? T.okBg : T.card, color: on ? ON_ACCENT : T.text, fontFamily: MONO, fontSize: 11 } }, past ? "✓" : String(n).padStart(2, "0")), l);
       })),
     step === 1 && h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12 } },
       agentList.length ? agentList.map((a) => {
@@ -442,7 +446,7 @@ function Share(env) {
           style: { display: "flex", flexDirection: "column", gap: 10, padding: 16, textAlign: "left", borderRadius: 16, font: "inherit", color: T.text, cursor: a.support.ok ? "pointer" : "not-allowed", background: a.support.ok ? T.tile : "transparent", border: on ? `2px solid ${T.focus}` : `1px ${a.support.ok ? "solid" : "dashed"} ${T.prominent}` } },
           h("span", { style: { display: "flex", alignItems: "center", gap: 10 } },
             h("span", { "aria-hidden": true, style: { width: 36, height: 36, borderRadius: "50%", background: T.card, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 18 } }, iconFor(a.pubkey)),
-            h("strong", { style: { fontSize: 16 } }, a.name), on ? h("span", { style: { marginLeft: "auto", width: 24, height: 24, borderRadius: "50%", background: SKY, color: INK, border: `1.5px solid ${INK}`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800 } }, "✓") : null),
+            h("strong", { style: { fontSize: 16 } }, a.name), on ? h("span", { style: { marginLeft: "auto", width: 24, height: 24, borderRadius: "50%", background: SKY, color: ON_ACCENT, border: `1.5px solid ${SKY}`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800 } }, "✓") : null),
           h("span", { style: { fontSize: 13, lineHeight: 1.45, color: a.support.ok ? T.subtle : T.danger } }, a.support.ok ? (config.agents[a.pubkey] ? "Already shared. Change who can ask." : "Ready to share") : a.support.reason));
       }) : h(Sub, { h }, "You have no agents in this community yet. Create one in Agents first.")),
     step === 2 && h(Fragment, null,
