@@ -129,11 +129,14 @@ npm test           # 21 tests: rules, limits, requests, delivery, channel menu
 - `art/`: illustrations from [Open Peeps](https://openpeeps.com) and
   [Open Doodles](https://opendoodles.com) by Pablo Stanley (CC0), shown on white
   "paper" so they read in dark mode.
+- `src/icons.js`: the line icons the page uses, from [Lucide](https://lucide.dev)
+  (ISC License). Regenerate it with lucide-static if you need another icon.
 
 ## Changelog
 
 - **v4.2:** new "Ink & clay" colours, shared with Team Hub: navy for important
-  buttons, with sage, ochre and clay for status. No more bright blue, yellow or red.
+  buttons, with sage, ochre and clay for status. Emojis are replaced by single-colour
+  line icons (Lucide), and each agent gets a letter mark.
 
 - **v4.1:** renamed everywhere to Agent Access (plugin ID `letitia.agent-access`,
   repository `agent-access`), with older settings carried over. The page is redesigned

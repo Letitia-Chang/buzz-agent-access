@@ -8,11 +8,12 @@ const art = Object.fromEntries(
 );
 const out = [
   "// Agent Access " + version + " — a Buzz API v1 plugin. Built from src/ by build.mjs; edit those files, not this one.",
-  "// Illustrations: Open Peeps and Open Doodles by Pablo Stanley, CC0 1.0.",
+  "// Illustrations: Open Peeps and Open Doodles by Pablo Stanley, CC0 1.0. Icons: Lucide, ISC.",
   "",
   read("./src/core.js"),
   `const VERSION = ${JSON.stringify(version)};`,
   `const ART = ${JSON.stringify(art)};`,
+  read("./src/icons.js"),
   read("./src/runtime.js"),
   read("./src/ui.js"),
 ].join("\n");

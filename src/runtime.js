@@ -340,7 +340,7 @@ function createRuntime(ctx) {
             ? [{
                 id: "share-agent",
                 label: "Share an agent here…",
-                icon: React.createElement("span", { "aria-hidden": true }, "☕"),
+                icon: svgIcon(React.createElement, "user-plus"),
                 onSelect: () => {
                   state.set((s) => ({ ...s, tab: "share", prefill: row.channel?.id }));
                   void navigation()?.open?.(PAGE_TARGET);

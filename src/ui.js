@@ -46,8 +46,9 @@ const RESULTS = {
   ok: ["Answered", "ok"], req: ["Asked you", "danger"], held: ["Held", "warn"],
   drop: ["Not delivered", "meta"], refused: ["Dismissed", "meta"], away: ["While away", "warn"],
 };
-const AGENT_ICONS = ["☕", "🦓", "🦉", "🐙", "🦊", "🐢", "🦄", "🐝"];
-const iconFor = (pubkey) => AGENT_ICONS[[...String(pubkey)].reduce((n, ch) => Math.imul(n ^ ch.charCodeAt(0), 16777619) >>> 0, 2166136261) % AGENT_ICONS.length];
+// Each agent gets a letter mark in one of the palette's colours, chosen from its key.
+const MARK_COLOURS = [["#24324A", "#F4F2EA"], ["#5F8A8B", "#F4F2EA"], ["#B89B5E", "#1E2533"], ["#9A5641", "#F4F2EA"], ["#7C6F86", "#F4F2EA"]];
+const hashOf = (s) => [...String(s)].reduce((n, ch) => Math.imul(n ^ ch.charCodeAt(0), 16777619) >>> 0, 2166136261);
 const tag = (n) => `{${String(n).padStart(3, "0")}}`;
 const timeLabel = (at) => {
   const d = new Date(at);
@@ -108,11 +109,12 @@ function App({ React, ctx, rt }) {
   });
   const shared = agentList.filter((a) => config.agents[a.pubkey]);
   const people = config.people.filter((p) => p.until == null || p.until > Date.now());
-  const env = { React, h, ctx, rt, ui, config, state, channels, agentList, shared, people, flash, go, connection };
+  const agentName = (k) => agentList.find((a) => a.pubkey === k)?.name || rt.nameOf(k);
+  const env = { React, h, ctx, rt, ui, config, state, channels, agentList, shared, people, flash, go, connection, agentName };
   const palette = PALETTES[dark ? "dark" : "light"];
 
   if (!rt.canWake)
-    return h(Page, { h, palette }, h(Callout, { h, icon: "⬆️", tone: "warn" }, "This version of Buzz can't pass messages to agents from plugins. Update Buzz in Settings → Software updates, then reopen this page."));
+    return h(Page, { h, palette }, h(Callout, { h, icon: "circle-arrow-up", tone: "warn" }, "This version of Buzz can't pass messages to agents from plugins. Update Buzz in Settings → Software updates, then reopen this page."));
 
   const firstRun = !Object.keys(config.agents).length;
   return h(Page, { h, palette },
@@ -161,7 +163,7 @@ function Title({ h, children, sub, n, right }) {
 function Callout({ h, icon, tone, children }) {
   const bg = tone === "warn" ? T.warnBg : tone === "danger" ? T.dangerBg : T.tile;
   return h("div", { style: { display: "flex", gap: 12, padding: "14px 16px", borderRadius: 16, background: bg, fontSize: 14, lineHeight: 1.55 } },
-    h("span", { "aria-hidden": true, style: { fontSize: 18 } }, icon), h("div", { style: { flex: 1 } }, children));
+    h(Icon, { h, name: icon, size: 18, style: { marginTop: 2, color: tone === "warn" ? T.warn : tone === "danger" ? T.danger : T.subtle } }), h("div", { style: { flex: 1 } }, children));
 }
 function Badge({ h, children }) {
   return h("span", { style: { minWidth: 22, height: 22, padding: "0 7px", borderRadius: 999, background: RED, color: "var(--aa-on-clay)", fontSize: 12, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center" } }, children);
@@ -197,6 +199,13 @@ function Segmented({ h, options, value, onChange, label }) {
 function Avatar({ h, name }) {
   const initials = String(name || "?").split(/\s+/).map((x) => x[0]).join("").slice(0, 2).toUpperCase();
   return h("span", { "aria-hidden": true, style: { width: 34, height: 34, flex: "0 0 34px", borderRadius: "50%", background: T.chip, color: T.text, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 } }, initials);
+}
+function Icon({ h, name, size, style }) {
+  return svgIcon(h, name, { size, style });
+}
+function AgentMark({ h, pubkey, name, size = 22 }) {
+  const [bg, fg] = MARK_COLOURS[hashOf(pubkey) % MARK_COLOURS.length];
+  return h("span", { "aria-hidden": true, style: { width: size, height: size, flex: `0 0 ${size}px`, borderRadius: Math.round(size * 0.32), background: bg, color: fg, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: Math.round(size * 0.48), fontWeight: 700, letterSpacing: 0, lineHeight: 1 } }, String(name || "?").trim().charAt(0).toUpperCase());
 }
 function Field({ h, value, onChange, placeholder, label, style }) {
   return h("input", { value, placeholder, "aria-label": label, onChange: (e) => onChange(e.target.value),
@@ -235,7 +244,7 @@ function AwayBanner({ h, rt, state, go }) {
   const away = state.away;
   const waiting = state.requests.filter((r) => r.kind === "away").length;
   const fmt = (t) => new Date(t).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
-  return h(Callout, { h, icon: "🌙", tone: "warn" },
+  return h(Callout, { h, icon: "moon", tone: "warn" },
     h("strong", null, `Buzz was closed on this computer from ${fmt(away.from)} to ${fmt(away.to)}. `),
     "Nobody could use your agents then. ",
     waiting ? `${plural(waiting, "mention")} came in while you were away. None were answered.` : "No mentions came in.",
@@ -264,7 +273,7 @@ function Tabs({ h, tab, go, state }) {
 
 // ----- overview -----
 function Limitations({ h }) {
-  return h(Callout, { h, icon: "💡" },
+  return h(Callout, { h, icon: "lightbulb" },
     "Works with ", h("strong", null, "Claude, Codex, Goose and Pi"), " agents running on this computer, only while Buzz is open. ",
     h("strong", null, "Shared compute and Builderlab agents aren't supported."), " Direct messages to your agent aren't passed on yet. Your agent answers with your account and credits.");
 }
@@ -341,17 +350,17 @@ function AgentFolder(env) {
   for (const c of chans) for (const m of c.members || []) if (m !== agent.owner) reach.add(m);
   const kind = /codex/.test(agent.type || "") ? "Codex" : /goose/.test(agent.type || "") ? "Goose" : /\bpi\b|\/pi/.test(agent.type || "") ? "Pi" : "Claude";
   const tabStyle = (on) => ({ display: "inline-flex", alignItems: "center", gap: 10, height: 50, padding: "0 20px 0 10px", border: 0, borderRadius: "16px 16px 0 0", font: "inherit", fontSize: 15, fontWeight: 700, cursor: "pointer", background: on ? AMBER : T.card, color: on ? INK : T.text });
-  const tileIcon = (icon) => h("span", { "aria-hidden": true, style: { width: 34, height: 34, borderRadius: "50%", border: `1px solid ${T.prominent}`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 } }, icon);
+  const tileIcon = (icon) => h("span", { "aria-hidden": true, style: { width: 34, height: 34, borderRadius: "50%", border: `1px solid ${T.prominent}`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: T.subtle } }, h(Icon, { h, name: icon }));
   return h("div", null,
     h("div", { role: "tablist", "aria-label": "Shared agents", style: { display: "flex", gap: 6, flexWrap: "wrap", paddingLeft: 12 } },
       shared.map((a, i) => {
         const on = a.pubkey === agent.pubkey;
         return h("button", { key: a.pubkey, type: "button", role: "tab", "aria-selected": on, onClick: () => setPicked(a.pubkey), style: tabStyle(on) },
           h("span", { style: { width: 30, height: 30, borderRadius: "50%", background: on ? INK : T.tile, color: on ? "#F4F2EA" : T.text, display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: MONO, fontSize: 11 } }, String(i + 1).padStart(2, "0")),
-          `${iconFor(a.pubkey)} ${a.name}`, h(Dot, { h, color: stateColor(a) }));
+          h(AgentMark, { h, pubkey: a.pubkey, name: a.name, size: 22 }), a.name, h(Dot, { h, color: stateColor(a) }));
       }),
       h("button", { type: "button", onClick: () => go("share"), style: { ...tabStyle(false), background: T.primary, color: T.onPrimary } },
-        h("span", { style: { width: 30, height: 30, borderRadius: "50%", background: "rgba(127,127,127,.35)", display: "inline-flex", alignItems: "center", justifyContent: "center" } }, "+"), "Share another agent")),
+        h("span", { style: { width: 30, height: 30, borderRadius: "50%", background: "rgba(127,127,127,.35)", display: "inline-flex", alignItems: "center", justifyContent: "center" } }, h(Icon, { h, name: "plus", size: 15 })), "Share another agent")),
     h(Card, { h, style: { borderTop: `6px solid ${AMBER}`, borderRadius: "0 26px 26px 26px" } },
       h(Title, { h, sub: "shared with", n: 3, right: h("span", { style: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 } }, h(Toggle, { h, ui, on: !cfg.paused, label: `Share ${agent.name}`, onChange: (on) => rt.config.set((c) => ({ ...c, agents: { ...c.agents, [agent.pubkey]: { ...c.agents[agent.pubkey], paused: !on } } }), { now: true }) }), cfg.paused ? "Paused" : "Shared") }, agent.name),
       h("span", { style: { fontSize: 13, color: T.subtle, marginTop: -8 } }, `${kind} · ${plural(reach.size, "person", "people")} can use it`),
@@ -363,17 +372,17 @@ function AgentFolder(env) {
         h("strong", { style: { color: near ? T.warn : T.text } }, paused ? "Paused: mentions are held" : `${left} left today`), h("span", { style: { color: T.subtle } }, `${config.limits.hour} per person each hour`)),
       h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 12 } },
         chans.map((c) => h(Tile, { h, key: c.id, style: { minHeight: 110, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 14 } },
-          tileIcon(c.visibility === "public" ? "🌐" : "🔒"),
+          tileIcon(c.visibility === "public" ? "globe" : "lock"),
           h("div", null, h("span", { style: { fontSize: 12, color: T.subtle } }, `${c.visibility === "public" ? "Public" : "Private"}${c.members ? " · " + plural(c.members.length, "member") : ""}`), h("strong", { style: { display: "block", fontSize: 17, letterSpacing: "-0.01em" } }, "#" + c.name)))),
         names.length ? h(Tile, { h, style: { minHeight: 110, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 14 } },
-          tileIcon("👥"),
+          tileIcon("users"),
           h("div", null, h("span", { style: { fontSize: 12, color: T.subtle } }, "Approved people"), h("strong", { style: { display: "block", fontSize: 17, letterSpacing: "-0.01em" } }, names.slice(0, 3).join(", ") + (names.length > 3 ? ` +${names.length - 3}` : "")))) : null,
         h("button", { type: "button", onClick: () => rt.state.set((s) => ({ ...s, tab: "share", prefillAgent: agent.pubkey })),
           style: { minHeight: 110, borderRadius: 16, border: `1.5px dashed ${T.prominent}`, background: "transparent", font: "inherit", color: T.text, cursor: "pointer", textAlign: "left", padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "space-between" } },
-          tileIcon("+"),
+          tileIcon("plus"),
           h("span", null, h("span", { style: { fontSize: 12, color: T.subtle, display: "block" } }, "Channel or person"), h("strong", { style: { fontSize: 17 } }, "Add")))),
       h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" } },
-        h(Btn, { h, onClick: async () => flash((await rt.copy(core.howTo(agent.name, config.limits))) ? "How-to copied. Paste it in your channel." : "Couldn't copy") }, "📋 Copy how-to"),
+        h(Btn, { h, onClick: async () => flash((await rt.copy(core.howTo(agent.name, config.limits))) ? "How-to copied. Paste it in your channel." : "Couldn't copy") }, h(Icon, { h, name: "copy" }), "Copy how-to"),
         h(MoreMenu, { h, React, ui, label: `More actions for ${agent.name}`, items: [
           { label: "Change limits", onSelect: () => go("limits") },
           { label: "See activity", onSelect: () => go("activity") },
@@ -427,7 +436,7 @@ function Share(env) {
       h(Paper, { h, art: "SelfieDoodle", style: { width: 150, height: 120 } }),
       h("div", { style: { flex: "999 1 260px", display: "flex", flexDirection: "column", gap: 6 } }, h("p", { style: { margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: "-0.03em" } }, `${pickedAgent.name} is shared.`, h("span", { style: { display: "block", color: T.grey } }, "Tell your team.")), h(Sub, { h }, "Post a short how-to so people know they can ask it.")),
       h("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
-        h(Btn, { h, kind: "sky", onClick: async () => flash((await rt.copy(core.howTo(pickedAgent.name, config.limits))) ? "How-to copied" : "Couldn't copy") }, "📋 Copy how-to"),
+        h(Btn, { h, kind: "sky", onClick: async () => flash((await rt.copy(core.howTo(pickedAgent.name, config.limits))) ? "How-to copied" : "Couldn't copy") }, h(Icon, { h, name: "copy" }), "Copy how-to"),
         h(Btn, { h, onClick: () => go("overview") }, "Back to overview")));
 
   return h(Card, { h, style: { gap: 20 } },
@@ -437,7 +446,7 @@ function Share(env) {
       ["Agent", "Who can ask", "Limits", "Review"].map((l, i) => {
         const n = i + 1, on = step === n, past = step > n;
         return h("li", { key: l, "aria-current": on ? "step" : undefined, style: { display: "inline-flex", alignItems: "center", gap: 8, height: 36, padding: "0 14px 0 5px", borderRadius: 999, fontSize: 14, fontWeight: 700, background: on ? T.primary : T.tile, color: on ? T.onPrimary : T.text } },
-          h("span", { style: { width: 26, height: 26, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", background: on ? SKY : past ? T.okBg : T.card, color: on ? ON_ACCENT : T.text, fontFamily: MONO, fontSize: 11 } }, past ? "✓" : String(n).padStart(2, "0")), l);
+          h("span", { style: { width: 26, height: 26, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", background: on ? SKY : past ? T.okBg : T.card, color: on ? ON_ACCENT : T.text, fontFamily: MONO, fontSize: 11 } }, past ? h(Icon, { h, name: "check", size: 13 }) : String(n).padStart(2, "0")), l);
       })),
     step === 1 && h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12 } },
       agentList.length ? agentList.map((a) => {
@@ -445,8 +454,8 @@ function Share(env) {
         return h("button", { key: a.pubkey, type: "button", disabled: !a.support.ok, "aria-pressed": on, onClick: () => setPicked(a.pubkey),
           style: { display: "flex", flexDirection: "column", gap: 10, padding: 16, textAlign: "left", borderRadius: 16, font: "inherit", color: T.text, cursor: a.support.ok ? "pointer" : "not-allowed", background: a.support.ok ? T.tile : "transparent", border: on ? `2px solid ${T.focus}` : `1px ${a.support.ok ? "solid" : "dashed"} ${T.prominent}` } },
           h("span", { style: { display: "flex", alignItems: "center", gap: 10 } },
-            h("span", { "aria-hidden": true, style: { width: 36, height: 36, borderRadius: "50%", background: T.card, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 18 } }, iconFor(a.pubkey)),
-            h("strong", { style: { fontSize: 16 } }, a.name), on ? h("span", { style: { marginLeft: "auto", width: 24, height: 24, borderRadius: "50%", background: SKY, color: ON_ACCENT, border: `1.5px solid ${SKY}`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800 } }, "✓") : null),
+            h(AgentMark, { h, pubkey: a.pubkey, name: a.name, size: 36 }),
+            h("strong", { style: { fontSize: 16 } }, a.name), on ? h("span", { style: { marginLeft: "auto", width: 24, height: 24, borderRadius: "50%", background: SKY, color: ON_ACCENT, border: `1.5px solid ${SKY}`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800 } }, h(Icon, { h, name: "check", size: 14 })) : null),
           h("span", { style: { fontSize: 13, lineHeight: 1.45, color: a.support.ok ? T.subtle : T.danger } }, a.support.ok ? (config.agents[a.pubkey] ? "Already shared. Change who can ask." : "Ready to share") : a.support.reason));
       }) : h(Sub, { h }, "You have no agents in this community yet. Create one in Agents first.")),
     step === 2 && h(Fragment, null,
@@ -461,12 +470,12 @@ function Share(env) {
             reason === "public" ? h(Chip, { h, tone: "danger" }, "Public · anyone can join") : reason === "big" ? h(Chip, { h, tone: "warn" }, `Over ${core.BIG_CHANNEL} people`) : reason === "unknown" ? h(Chip, { h, tone: "warn" }, "Can't check members") : null);
         }) : h("div", { style: { padding: "12px 16px" } }, h(Sub, { h }, "Loading your channels…"))),
       risky.length > 0 && h("div", { role: "alert", style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px 14px", padding: "14px 16px", borderRadius: 16, background: T.dangerBg } },
-        h("span", { "aria-hidden": true }, "⚠️"),
+        h(Icon, { h, name: "triangle-alert", size: 18, style: { color: T.danger } }),
         h("p", { style: { margin: 0, flex: "999 1 280px", fontSize: 14, lineHeight: 1.5 } }, h("strong", null, risky.map((c) => "#" + c.name).join(", ")), " could let many people, or people you don't know, use your account and credits. ", pickedAgent?.name, " will ask you before answering there."),
         h("label", { style: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700 } }, h("input", { type: "checkbox", checked: confirmed, onChange: () => setConfirmed(!confirmed), style: { width: 18, height: 18 } }), "I understand")),
       h(Tile, { h, style: { display: "flex", flexDirection: "column", gap: 10 } },
         h("strong", null, "People, one by one"), h(Sub, { h }, "For someone who isn't in those channels. Their access ends on its own."),
-        added.length ? h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, added.map((p) => h(Chip, { h, key: p.pubkey }, `${p.name} · ${durLabel(p.dur)}`, h("button", { type: "button", "aria-label": `Remove ${p.name}`, onClick: () => setAdded(added.filter((x) => x.pubkey !== p.pubkey)), style: { border: 0, background: "none", cursor: "pointer", color: T.subtle } }, "✕")))) : null,
+        added.length ? h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, added.map((p) => h(Chip, { h, key: p.pubkey }, `${p.name} · ${durLabel(p.dur)}`, h("button", { type: "button", "aria-label": `Remove ${p.name}`, onClick: () => setAdded(added.filter((x) => x.pubkey !== p.pubkey)), style: { border: 0, background: "none", cursor: "pointer", color: T.subtle, display: "inline-flex", padding: 2 } }, h(Icon, { h, name: "x", size: 14 }))))) : null,
         h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" } },
           h(Field, { h, value: query, onChange: setQuery, label: "Search people", placeholder: "Search by name, or paste an npub", style: { flex: "1 1 240px", background: T.card } }),
           h(Pills, { h, label: "How long", value: dur, onChange: setDur, options: core.DURATIONS.map((d) => [d.id, d.label]) })),
@@ -475,7 +484,7 @@ function Share(env) {
           h(Avatar, { h, name: m.name }), m.name, h("span", { style: { marginLeft: "auto", color: T.subtle, fontSize: 13 } }, `Add for ${durLabel(dur).toLowerCase()}`)))) : null)),
     step === 3 && h(LimitFields, env),
     step === 4 && h(Tile, { h, style: { display: "flex", flexDirection: "column", gap: 12, padding: 20 } },
-      h("p", { style: { margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em" } }, `${iconFor(picked)} ${pickedAgent?.name}`),
+      h("p", { style: { margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: 10 } }, h(AgentMark, { h, pubkey: picked, name: pickedAgent?.name, size: 28 }), pickedAgent?.name),
       h("p", { style: { margin: 0, fontSize: 15 } }, h("strong", null, "Who: "), [...[...chosen].map((id) => "#" + (channels.find((c) => c.id === id)?.name || "channel")), ...added.map((p) => `${p.name} (${durLabel(p.dur)})`)].join(", ") || "Nobody yet"),
       h("p", { style: { margin: 0, fontSize: 15 } }, h("strong", null, "Limits: "), `${config.limits.hour} an hour per person · ${config.limits.day} a day for this agent · ${config.limits.total} a day in total`),
       h("p", { style: { margin: 0, fontSize: 15 } }, h("strong", null, "Asks you first: "), [config.ask.public && "public channels", config.ask.big && `channels over ${core.BIG_CHANNEL} people`, config.ask.unknown && "channels it can't check"].filter(Boolean).join(", ") || "never"),
@@ -504,7 +513,7 @@ function LimitFields({ h, rt, config }) {
 
 // ----- people -----
 function People(env) {
-  const { h, React, rt, config, people, channels, shared, flash } = env;
+  const { h, React, rt, config, people, channels, shared, flash, agentName } = env;
   const [query, setQuery] = React.useState("");
   const [adding, setAdding] = React.useState(false);
   const [pick, setPick] = React.useState(null);
@@ -539,36 +548,36 @@ function People(env) {
   };
   return h(Fragment, null,
     adding && h(Card, { h, style: { outline: `2px solid ${T.focus}` } },
-      h(Title, { h, sub: "for a while, or until you stop", n: 1, right: h(Btn, { h, label: "Close", onClick: () => setAdding(false), style: { width: 38, padding: 0 } }, "✕") }, "Add a person"),
+      h(Title, { h, sub: "for a while, or until you stop", n: 1, right: h(Btn, { h, label: "Close", onClick: () => setAdding(false), style: { width: 38, padding: 0 } }, h(Icon, { h, name: "x" })) }, "Add a person"),
       h(Field, { h, value: addQuery, onChange: setAddQuery, label: "Search by name", placeholder: "Search by name, or paste an npub" }),
       h(Pills, { h, label: "Person", value: pick?.pubkey, onChange: (pk) => setPick(options.find((o) => o.pubkey === pk)), options: options.map((o) => [o.pubkey, o.name]) }),
       h("div", { style: { display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center" } }, h("strong", { style: { fontSize: 14 } }, "Agents"),
-        shared.map((a) => h("label", { key: a.pubkey, style: { display: "inline-flex", gap: 6, fontSize: 14, alignItems: "center" } }, h("input", { type: "checkbox", checked: agents.has(a.pubkey), onChange: () => { const n = new Set(agents); n.has(a.pubkey) ? n.delete(a.pubkey) : n.add(a.pubkey); setAgents(n); }, style: { accentColor: INK } }), `${iconFor(a.pubkey)} ${a.name}`))),
+        shared.map((a) => h("label", { key: a.pubkey, style: { display: "inline-flex", gap: 6, fontSize: 14, alignItems: "center" } }, h("input", { type: "checkbox", checked: agents.has(a.pubkey), onChange: () => { const n = new Set(agents); n.has(a.pubkey) ? n.delete(a.pubkey) : n.add(a.pubkey); setAgents(n); }, style: { accentColor: INK } }), h(AgentMark, { h, pubkey: a.pubkey, name: a.name, size: 20 }), a.name))),
       h("div", { style: { display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" } }, h("strong", { style: { fontSize: 14 } }, "For"), h(Pills, { h, label: "How long", value: dur, onChange: setDur, options: core.DURATIONS.map((d) => [d.id, d.label]) })),
       h("div", null, h(Btn, { h, kind: "sky", disabled: !pick || !agents.size, onClick: give }, pick ? `Give ${pick.name} access` : "Pick someone first"))),
     h(Requests, { ...env, n: 2 }),
     h(Card, { h },
-      h(Title, { h, sub: `${plural(rows.length, "person", "people")} can ask`, n: 3, right: h(Btn, { h, kind: "primary", disabled: !shared.length, onClick: () => setAdding(!adding) }, "+ Add a person") }, "People"),
+      h(Title, { h, sub: `${plural(rows.length, "person", "people")} can ask`, n: 3, right: h(Btn, { h, kind: "primary", disabled: !shared.length, onClick: () => setAdding(!adding) }, h(Icon, { h, name: "user-plus" }), "Add a person") }, "People"),
       h(Field, { h, value: query, onChange: setQuery, label: "Search names", placeholder: "Search names", style: { maxWidth: 280 } }),
       h("div", { style: { display: "flex", flexDirection: "column", gap: 6 } },
         rows.length ? rows.map((r) => h(Tile, { h, key: r.pubkey, style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 16px", padding: "10px 14px" } },
           h("span", { style: { display: "flex", alignItems: "center", gap: 10, flex: "1 1 180px", minWidth: 0 } }, h(Avatar, { h, name: r.name }), h("strong", null, r.name)),
           h("span", { style: { flex: "1 1 160px" } }, h(Chip, { h }, r.how)),
-          h("span", { style: { flex: "0 0 auto", fontSize: 16 } }, r.agents.map(iconFor).join(" ")),
+          h("span", { style: { flex: "0 0 auto", display: "inline-flex", gap: 4 } }, r.agents.map((k) => h("span", { key: k, title: agentName(k) }, h(AgentMark, { h, pubkey: k, name: agentName(k), size: 22 })))),
           h("span", { style: { flex: "0 0 140px", fontSize: 14, color: r.ends === "Today" || r.ends === "Tomorrow" ? T.danger : T.text, fontWeight: r.ends === "Today" || r.ends === "Tomorrow" ? 700 : 400 } }, r.ends),
           r.manual ? h(Btn, { h, onClick: () => { rt.removePerson(r.pubkey); flash(`${r.name} no longer has access`); }, style: { minHeight: 32 } }, "Remove") : h(Mono, { h }, "ends when they leave")))
           : h("div", { style: { padding: 18, textAlign: "center" } }, h(Sub, { h }, query ? `Nobody matches “${query}”.` : "Nobody can ask yet. Share an agent with a channel, or add someone.")))));
 }
 
 // ----- activity -----
-function Activity({ h, React, rt, state }) {
+function Activity({ h, React, rt, state, agentName }) {
   const [filter, setFilter] = React.useState("all");
   const keys = [["all", "All"], ["ok", "Answered"], ["held", "Held"], ["req", "Asked you"], ["drop", "Not delivered"], ["away", "While away"]];
   const rows = state.activity.filter((a) => filter === "all" || a.result === filter).slice(0, 200);
   const dotFor = { ok: T.online, held: AMBER, away: AMBER, req: RED, drop: "#8F8A7C", refused: "#8F8A7C" };
   return h(Card, { h },
     h(Title, { h, sub: "latest first", n: 1 }, "Activity"),
-    h(Callout, { h, icon: "🔒" }, "Only who, which agent, where and when are kept here, on this computer, for 30 days. ", h("strong", null, "What people asked stays in Buzz"), ", in the thread."),
+    h(Callout, { h, icon: "lock" }, "Only who, which agent, where and when are kept here, on this computer, for 30 days. ", h("strong", null, "What people asked stays in Buzz"), ", in the thread."),
     h(Pills, { h, label: "Filter", value: filter, onChange: setFilter, options: keys.map(([k, l]) => [k, `${l} ${k === "all" ? state.activity.length : state.activity.filter((a) => a.result === k).length}`]) }),
     h("div", { style: { display: "flex", flexDirection: "column", gap: 6 } },
       rows.length ? rows.map((a, i) => {
@@ -577,7 +586,7 @@ function Activity({ h, React, rt, state }) {
         return h(Tile, { h, key: a.at + ":" + i, style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px 14px", padding: "10px 14px", fontSize: 14 } },
           h(Mono, { h, style: { flex: "0 0 72px" } }, timeLabel(a.at)),
           h(Dot, { h, color: dotFor[a.result] || "#8F8A7C" }),
-          h("span", { style: { flex: "1 1 300px" } }, `${label}: `, h("strong", null, who), ` → ${iconFor(a.agent)} in ${rt.channelName(a.channel)}`),
+          h("span", { style: { flex: "1 1 300px" } }, `${label}: `, h("strong", null, who), ` → ${agentName(a.agent)} in ${rt.channelName(a.channel)}`),
           a.detail ? h(Mono, { h }, a.detail.toLowerCase()) : null);
       }) : h("div", { style: { padding: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, textAlign: "center" } },
         h(Paper, { h, art: "LayingDoodle", style: { width: 220, height: 140 } }), h(Sub, { h }, "Nothing yet. When someone asks one of your agents, it shows up here."))));
@@ -592,7 +601,7 @@ function Limits(env) {
     h(Toggle, { h, ui, on: config[group][k], onChange: (v) => setGroup(group, k, v), label })));
   return h(Fragment, null,
     h(Card, { h }, h(Title, { h, sub: "per person and per agent", n: 1 }, "Limits"), h(LimitFields, env),
-      h(Callout, { h, icon: "⏳", tone: "warn" }, "When a limit is reached, mentions are ", h("strong", null, "held, not answered"), ". You can see them in Activity.")),
+      h(Callout, { h, icon: "hourglass", tone: "warn" }, "When a limit is reached, mentions are ", h("strong", null, "held, not answered"), ". You can see them in Activity.")),
     h(Card, { h }, h(Title, { h, sub: "before answering", n: 2 }, "Ask me first"), rows("ask", [
       ["public", "Public channels", "Anyone can join them, so you check each question first."],
       ["big", `Channels with more than ${core.BIG_CHANNEL} people`, "Bigger rooms, more chances of surprise."],
@@ -620,8 +629,8 @@ function Settings({ h, React, rt, flash }) {
     h(Card, { h },
       h(Title, { h, sub: "can be shared", n: 2 }, "Which agents"),
       h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 } },
-        h(Tile, { h, style: { background: T.okBg, color: T.ok } }, h("strong", null, "✓ Supported"), h("p", { style: { margin: "4px 0 0", fontSize: 14 } }, "Claude, Codex, Goose and Pi agents running on this computer")),
-        h(Tile, { h }, h("strong", null, "✕ Not supported"), h("p", { style: { margin: "4px 0 0", fontSize: 14, color: T.subtle } }, "Shared compute and Builderlab agents. They run somewhere else, so this plugin can't reach them.")))),
+        h(Tile, { h, style: { background: T.okBg, color: T.ok } }, h("strong", { style: { display: "inline-flex", alignItems: "center", gap: 6 } }, h(Icon, { h, name: "check" }), "Supported"), h("p", { style: { margin: "4px 0 0", fontSize: 14 } }, "Claude, Codex, Goose and Pi agents running on this computer")),
+        h(Tile, { h }, h("strong", { style: { display: "inline-flex", alignItems: "center", gap: 6 } }, h(Icon, { h, name: "x" }), "Not supported"), h("p", { style: { margin: "4px 0 0", fontSize: 14, color: T.subtle } }, "Shared compute and Builderlab agents. They run somewhere else, so this plugin can't reach them.")))),
     h(Card, { h, style: { flexDirection: "row", flexWrap: "wrap", gap: 10, alignItems: "center" } },
       h("div", { style: { flex: "999 1 240px" } }, h(Title, { h, sub: "metadata only, 30 days", n: 3 }, "Your data")),
       h(Btn, { h, onClick: exportCsv }, "Copy activity as CSV"),
