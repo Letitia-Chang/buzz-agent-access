@@ -1,8 +1,8 @@
 {
   "id": "letitia.teammate-access",
-  "name": "Teammate access",
+  "name": "Agent Access",
   "apiVersion": 1,
-  "description": "Let people in channels you choose, or teammates you name, talk to your agents by @mentioning them.",
+  "description": "Let teammates @mention the agents running on your computer, in channels you choose or one by one, with limits. Claude, Codex, Goose and Pi agents only; Shared compute and Builderlab agents aren't supported.",
   "discovery": {
     "category": "developer-tools-and-integrations",
     "tags": [

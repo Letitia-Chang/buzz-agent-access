@@ -1,117 +1,138 @@
-# Teammate access
+# Agent Access
 
-A [Buzz](https://github.com/block/buzz-app) plugin that lets the people you choose
-talk to your agents by @mentioning them in a channel.
+A [Buzz](https://github.com/block/buzz-app) plugin that lets your teammates
+@mention the agents running on your computer, in channels you choose or one by
+one, with limits you set.
+
+> **Works with Claude, Codex, Goose and Pi agents running on this computer, only
+> while Buzz is open. Shared compute and Builderlab agents aren't supported.**
+> They run somewhere else, so a plugin on your computer can't reach them.
+> Direct messages to your agent aren't passed on yet.
+
+(Formerly *Teammate access*. The plugin ID is unchanged, so updating keeps your
+settings.)
 
 ## Why it exists
 
-In Buzz, an agent that runs on your computer (Claude, Codex, Goose or Pi) answers
-only its owner. That's deliberate: the agent runs commands on your computer, as you,
-with your account or API key.
-
-Teams often want one well-set-up agent that everyone can ask. This plugin opens a
-narrow, controlled path for that without changing Buzz itself:
+In Buzz, an agent on your computer answers only its owner. That's deliberate: it
+runs commands on your computer, as you, with your account or API key. Teams still
+want one well-set-up agent that everyone can ask. Agent Access opens a narrow,
+controlled path for that without changing Buzz:
 
 - You choose **which agents** are shared.
-- You choose **who** can reach them: everyone in channels you pick, plus people you
-  name.
-- You set **how much** they can use them: hourly and daily limits.
+- You choose **who** can ask: everyone in channels you pick, and people you add
+  for a set time.
+- You set **how much**: hourly, daily and total limits.
+- You stay **in charge**: anyone else who asks becomes a request you approve,
+  answer once or dismiss.
 
-When an allowed person @mentions a shared agent, the plugin wakes the agent in the
-thread of their message, and it answers them there. There's no workflow and no extra
-message in the channel.
+## What's on the page
 
-## How it works
+Open **Agent Access** from the sidebar. It has six tabs:
 
-Buzz plugins can start one of their owner's agents with `ctx.agents.wake`. Buzz
-allows this because a plugin you installed counts as your own code. The plugin:
+| Tab | What you do there |
+| --- | --- |
+| **Overview** | See requests waiting for you, today's or this week's usage, and your shared agents. Each agent has a ⋯ menu: edit who can ask, change limits, pause it, copy a how-to, or stop sharing. |
+| **Share an agent** | Four steps: pick an agent (unsupported ones are greyed out with the reason), pick channels and people, set limits, review and share. Public channels and channels over 20 people are flagged and need an "I understand". |
+| **People** | Requests, everyone who can ask and when their access ends, and **Add a person** for 1 day, 1 week, 30 days or until you stop. |
+| **Activity** | Who asked which agent, where and when, and what happened: answered, held by a limit, asked you, not delivered, or came in while you were away. **What people asked is never stored here.** |
+| **Limits & alerts** | The three limits, "ask me first" rules, and alerts. |
+| **Settings** | Version, which agents can be shared, copy or clear activity, and **Stop sharing everything**. |
 
-1. Watches the community for messages that @mention an agent you shared.
-2. Checks that the sender is allowed. Either they posted in a channel you granted, or
-   you approved them by name.
-3. Checks the limits.
-4. Wakes the agent in the thread of that message, and tells it who asked.
-5. Gives shared agents standing limits for these requests: no revealing secrets or
-   credentials, deleting files, pushing code, spending money or changing accounts.
-   If a request needs any of that, the agent says its owner must ask directly.
+**Pause all sharing** is always in the header. While paused, nobody else can use
+your agents, and their mentions are held, not answered.
 
-### Who can reach an agent
+## In Buzz
 
-- **Channels (recommended).** In a private channel only members can post, and the
-  relay enforces that. Channel membership is the permission: people who join are
-  covered automatically, and people who leave lose access.
-- **Approved people.** For individuals outside those channels, added by public key
-  (hex or `npub`). A public key is an ID, not a secret.
+- **Requests as notices.** When someone without access asks, Buzz shows a notice
+  with *Give access for 1 week*, *Answer once* and *Dismiss*. You can also handle it
+  on the page.
+- **Channel menu.** Right-click a channel and choose **Share an agent here…** to
+  open the share steps with that channel ticked.
+- **Notifications.** An alert when an agent nears its daily limit (once a day), and
+  a summary after 6 pm. "Every answer" is off by default.
+- **Checked delivery.** On newer Buzz, each message is handed over only if sharing
+  is still on at that moment, and the result is recorded in Activity.
+- **While you were away.** If Buzz was closed, a banner says when. Mentions from
+  that time (up to 24 hours) wait as requests. They're never answered
+  automatically.
 
-You're never limited by the plugin: you talk to your own agents directly, as usual.
+Every one of these is feature-detected. On an older Buzz the plugin still works,
+and the requests simply wait on the page.
+
+## Limits
+
+| Limit | Default | What happens when it's hit |
+| --- | --- | --- |
+| Per person, each hour | 5 | That person's mentions are held. |
+| Per agent, each day | 50 | That agent's mentions are held. |
+| All agents, each day | 100 | Everything is held until tomorrow. |
+
+Counters are saved, so restarting Buzz doesn't reset them.
+
+**Ask me first** (all on by default): public channels, channels with more than 20
+people, and channels whose members the plugin can't check. Mentions there become
+requests even when the channel is shared.
+
+## Things to know before sharing
+
+- **Agents run as you.** Anyone with access can make a shared agent run commands on
+  your computer and use your account. The safety rules given to the agent (no
+  secrets, no deleting files, no pushing code, no spending money, no changing
+  accounts) are instructions, **not a hard block**. Share with people you trust,
+  and prefer agents whose workspace is a dedicated folder.
+- **Public channels** can be joined by anyone in the community.
+- **Settings and activity stay on this computer.** Requests keep the question until
+  you handle them, so you can decide. Activity keeps only metadata, for 30 days.
+- **Plugin API.** Buzz says to treat every plugin API as unstable, so a future Buzz
+  release could break something. Updates to this plugin will follow.
 
 ## Install
 
 In Buzz (desktop), go to **Settings → Plugins → Manage plugins**:
 
-- **From a Git repository:** enter this repository's URL. For a private repository,
-  use the SSH form (`git@github.com:<org>/<repo>.git`). Buzz uses your own GitHub
-  SSH key, so you need read access to the repository. Private HTTPS URLs don't work,
-  because Buzz ignores Git credential helpers.
-- **From a folder:** unzip a release and choose the `teammate-access` folder.
+- **From a Git repository:** this repository's SSH URL
+  (`git@github.com:Letitia-Chang/buzz-teammate-access.git`). Buzz uses your GitHub
+  SSH key, so you need read access.
+- **From a folder:** unzip a release and choose the folder.
 
-New installs start disabled. Enable the plugin, then open **Teammate access** from
-the Messages sidebar.
-
-## Set up
-
-1. Under **Agents**, turn on an agent and tick the channels whose members may talk
-   to it.
-2. Optional: under **Approved people**, add individuals.
-3. Check **Limits** (below).
-
-## Limits and warnings
-
-Every request someone else sends runs on **your** computer and uses **your**
-Claude credits. The plugin protects you in four ways:
-
-| Protection | Default | What it does |
-| --- | --- | --- |
-| Per person, per agent | 10 an hour | One person can't drain an agent. |
-| Per agent, everyone together | 50 a day | Caps your total spend per agent. |
-| Reach count | shown | Each agent shows how many people can use it. |
-| Confirmation | on | Granting a channel that's **public**, has **more than 20 members**, or has an **unknown member count** asks first, and says how many people that is. |
-
-Requests that hit a limit are logged on the plugin's Status panel and not passed on.
-Your own messages never count toward the limits.
-
-### Things to know before sharing
-
-- **Agents run as you.** Anyone with access can make a shared agent run commands on
-  your computer and use your account. The safety limits are instructions to the
-  agent, **not a hard block**. Share only with people you trust, and prefer agents
-  whose workspace is a dedicated folder.
-- **Public channels.** Anyone in the community can join a public channel, so
-  granting one opens the agent to the whole community.
-- **Only while you're online.** Agents answer only while your computer is on and
-  Buzz is open. Messages sent while you're offline aren't answered later.
-- **Channels only.** Direct messages to your agent never reach your app.
-- **Settings are local.** Settings and limit counters are saved on your computer
-  only. Counters reset when Buzz restarts.
-- **Plugin API.** `ctx.agents.wake` is documented but not yet frozen, so a future
-  Buzz release could change it.
-- **Buzz version.** The plugin needs Buzz desktop v1.0.2 or later for standing
-  instructions. On older versions it sends the limits with each request instead.
+New installs start disabled. Enable the plugin, then open **Agent Access**.
 
 ## Updates
 
-The manifest declares `"updates": { "defaultEnabled": true }`. Installed from Git,
-Buzz checks for new commits at startup and hourly while it's open, then offers
-**Update and reload**. If an update asks for more access, Buzz asks you to review
-it first. Turn checks off in the plugin's actions menu.
+`"updates": { "defaultEnabled": true }` makes Buzz check for new commits at
+startup and hourly, then offer **Update and reload**.
 
-## Files
+## Developing
 
-- `manifest.json`: the plugin's ID, name and update settings.
-- `plugin.js`: the plugin. Plain JavaScript, no build step, no dependencies.
+Buzz loads one file, `plugin.js`, so the source lives in `src/` and is joined by a
+small build script:
+
+```sh
+npm install        # test tools only; the plugin has no dependencies
+npm run build      # src/*.js + art/*.svg → plugin.js
+npm test           # 20 tests: rules, limits, requests, delivery, channel menu
+```
+
+- `src/core.js`: settings, sharing rules, limits and activity. No Buzz services,
+  so it's tested directly.
+- `src/runtime.js`: watching mentions, requests, notices, notifications, channel
+  menu, and the "while you were away" check.
+- `src/ui.js`: the page. It uses Buzz's colour tokens, so light and dark themes both
+  work.
+- `art/`: illustrations from [Open Peeps](https://openpeeps.com) and
+  [Open Doodles](https://opendoodles.com) by Pablo Stanley (CC0), shown on white
+  "paper" so they read in dark mode.
 
 ## Changelog
 
+- **v4 (Agent Access):** a new name and page. Requests from people without access,
+  with Give access, Answer once and Dismiss, also as Buzz notices. People can be
+  added for a set time. Pause everything or one agent. A third limit (daily total)
+  and saved counters. "Ask me first" rules. Activity with results, metadata only. A
+  channel menu item, near-limit and daily-summary alerts, checked delivery, a "while
+  you were away" banner, and unsupported agents shown with the reason. Settings
+  from v1 to v3 carry over.
 - **v3:** reach count per agent, a confirmation for large, public or unknown-size
   channels, a daily budget per agent, and Git update checks.
 - **v2:** access by channel, plus an hourly limit per person.
@@ -119,4 +140,4 @@ it first. Turn checks off in the plugin's actions menu.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Illustrations in `art/` are CC0.
